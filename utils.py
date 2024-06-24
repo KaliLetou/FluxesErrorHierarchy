@@ -62,17 +62,17 @@ def calculate_binning_mean(var_comp,bins_all,variables,percentiles,prob=None):
     """
     min_n=5 # minimum number of values in a bin so the statistics are calculated.
 
-    print('\n','\n','+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('  --> CALCULATING BINNING ')
-    print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-    print('Independent variable: ', variables[0])
+    #print('\n','\n','+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    #print('  --> CALCULATING BINNING ')
+    #print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+    #print('Independent variable: ', variables[0])
     var_comp=get_mask(var_comp)
     prm=var_comp[0,:][var_comp[0,:].mask==False].flatten()
-    print('Large-scale variables:', variables[1:])
-    for ivar,var in enumerate(variables):
-      print('  -> ',var, '(min, max): ', np.min(var_comp[ivar,:]),np.max(var_comp[ivar,:]))
+    #print('Large-scale variables:', variables[1:])
+    #for ivar,var in enumerate(variables):
+    #  print('  -> ',var, '(min, max): ', np.min(var_comp[ivar,:]),np.max(var_comp[ivar,:]))
 
-    print('\n','  --> Digitizing large-scale variables')
+    #print('\n','  --> Digitizing large-scale variables')
     ind1=np.digitize(var_comp[1,:][var_comp[1,:].mask==False].flatten(), bins_all[variables[1]])
     ind2=np.digitize(var_comp[2,:][var_comp[2,:].mask==False].flatten(), bins_all[variables[2]])
     #pdb.set_trace()
@@ -84,7 +84,7 @@ def calculate_binning_mean(var_comp,bins_all,variables,percentiles,prob=None):
     std_bin=np.zeros((bins_all[variables[1]].shape[0]-1,bins_all[variables[2]].shape[0]-1))
     per_bin=np.zeros((len(percentiles),bins_all[variables[1]].shape[0]-1,bins_all[variables[2]].shape[0]-1))
 
-    print('\n','  --> Calculating intensity, frequency and other statistiques at each regime')
+    #print('\n','  --> Calculating intensity, frequency and other statistiques at each regime')
     for cb1,bin1 in enumerate(bins_all[variables[1]][:-1]):
         for cb2,bin2 in enumerate(bins_all[variables[2]][:-1]):
           #print(cb1,cb2)
@@ -109,6 +109,59 @@ def calculate_binning_mean(var_comp,bins_all,variables,percentiles,prob=None):
         freq_bin=freq_bin/(np.sum(freq_bin))
     return freq_bin,int_bin,max_bin,max5_bin,std_bin,per_bin
 
+def error_decomposition_taylor(var_tot,terms,Im,Nm,Io,No):
+    """
+    This functions calculate errors for the difference between two functions of the form f=I*N is used.
+
+    Created: 01/08/2020
+    Last Modification:
+    - 01/08/2020:
+       I
+    """
+    factor=1.
+    for term in terms:
+      if term=='tot':
+        var_tot[0,:]=factor*(Im*Nm-Io*No)
+      if term=='int':
+        var_tot[2,:]=factor*(Im-Io)*No
+      if term=='freq':
+        var_tot[1,:]=factor*(Nm-No)*Io
+      if term=='residual':
+        var_tot[3,:]=(Im-Io)*(Nm-No)
+    #pdb.set_trace()
+    return var_tot
+
+#############
+def error_illdefined(var_tot,terms,Im,Nm,Io,No):
+    var_tot=get_mask(var_tot)
+    for bb in [True,False]:
+      if bb==False:
+        bb1=True
+      else:
+        bb1=False
+      condition=((Io*No).mask==bb) & ((Im*Nm).mask==bb1)
+      #print(bb,np.sum(condition))
+      if np.sum(condition)>0:
+        if bb==False:
+          for n_stat,stat in enumerate(['tot','freq']):
+            ind=np.where(np.asarray(terms)==stat)[0][0]
+            var_tot[ind,:][condition]=-(Io*No)[condition].data
+            var_tot.mask[ind,:][condition]=False
+          for n_stat,stat in enumerate(['int','residual']):
+            ind=np.where(np.asarray(terms)==stat)[0][0]
+            var_tot[ind,:][condition]=-(Io*No)[condition].data*0
+            var_tot[ind,:][condition].mask=False
+        else:
+          for stat in ['tot','freq']:
+            ind=np.where(np.asarray(terms)==stat)[0][0]
+            #pdb.set_trace()
+            var_tot[ind,:][condition]=(Im*Nm)[condition].data
+            var_tot[ind,:][condition].mask=False
+          for stat in ['int','residual']:
+            ind=np.where(np.asarray(terms)==stat)[0][0]
+            var_tot[ind,:][condition]=(Im*Nm)[condition].data*0
+            var_tot[ind,:][condition].mask=False
+    return var_tot
 
 # Modified binnin function
 def calculate_binning_mean_time(var_comp, bins_all, variables, percentiles, prob=None):
