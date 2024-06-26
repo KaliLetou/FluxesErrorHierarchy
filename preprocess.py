@@ -28,7 +28,7 @@ for c_var, variable in enumerate(variables) :
     else:
         str_vars = str_vars + '-' + variable
 
-path_in = p.path_in
+path_in = p.path_in_r
 path_out=path_in+'../AMF_corrected/'
 print(path_out)
 os.system('mkdir -p ' + path_out)
