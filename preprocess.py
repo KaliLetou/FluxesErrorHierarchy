@@ -112,7 +112,8 @@ for z0 in z0s:
                 if source[:3]=='AMF':
                     dates_stat = np.load(path.replace(source+'_data_','AMF_dates_'))
                 else:
-                    dates_stat = np.load(path.replace('_data_','_dates_'))
+                    station=path.split("_")[2]+"_"+path.split("_")[3]
+                    dates_stat = np.load(path_in+f"AMF_dates_{station}_2015-2020_WS-USTAR-ZL-TA-H-LE-PA-RH_1.npy") #np.load(path.replace('_data_','_dates_')) Use amf dates
 
                 stat_data.append(dates_stat.shape[0])
                 if j==0:

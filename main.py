@@ -285,10 +285,10 @@ def main():
 
             # Switch paths to gem
             data_p_gem = data_p.replace("AMFc-BEL_withz0_data","GEM_data").replace("1.npy",sim+"_1.npy")
-            date_p_gem = date_p.replace("AMF_dates","GEM_dates").replace("1.npy",sim+"_1.npy")
+            #date_p_gem = date_p.replace("AMF_dates","GEM_dates").replace("1.npy",sim+"_1.npy")
             
             data_gem = np.load(data_p_gem)
-            dates_gem = np.load(date_p_gem)
+            dates_gem =  dates #np.load(date_p_gem) # Use AMF dates
 
             # Correct dates
             reference_date=datetime(1971,1,1)
