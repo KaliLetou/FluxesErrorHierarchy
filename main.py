@@ -34,15 +34,18 @@ def main():
             str_vars = str_vars + '-' + variable
     
     # Setup paths
-    path_in_r = p.path_in_r
-    path_in = p.path_in # This is AMF_corrected
+    path_in_r = p.path_data # Raw data
+    path_in = p.path_amf_corrected # This is AMF_corrected
+    path_stats = p.path_stats
+    path_z0 = p.path_z0
+    path_dates = p.path_dates
     path_out=p.path_out
     os.system('mkdir -p ' + path_out)
 
     vars_ind={}
     for ivar,var in enumerate(variables):
         vars_ind[var]=ivar
-    stations=np.load(path_in_r+'stats-selected.npy')
+    stations=np.load(path_stats+'stats-selected.npy')
     
     term_names=utils.constants.term_names
     term_error_names=utils.constants.term_error_names
@@ -62,7 +65,7 @@ def main():
     # Roughness lengths                                                                                                                                                              
     dic_z0={}
     for sim in simulations:
-        with open(path_in_r+'/z0_GEM/'+sim+'_mean_z0_pickle','rb') as s:
+        with open(path_z0+sim+'_mean_z0_pickle','rb') as s:
             temp=pickle.load(s)
             z0_t=[]
             for st in stations:
@@ -258,7 +261,8 @@ def main():
     # Computing the mean, diurnal, and annual cycle errors
     # Get amf paths
     amf_data_path = glob.glob(path_in_r+"/AMFc-BEL_withz0_data_*.npy")
-    amf_date_path = glob.glob(path_in_r+"/AMF_dates_*.npy")
+    amf_date_path = glob.glob(path_dates+"/AMF_dates_*.npy")
+
 
     # Sort paths
     amf_data_path.sort()
@@ -286,7 +290,6 @@ def main():
             # Switch paths to gem
             data_p_gem = data_p.replace("AMFc-BEL_withz0_data","GEM_data").replace("1.npy",sim+"_1.npy")
             #date_p_gem = date_p.replace("AMF_dates","GEM_dates").replace("1.npy",sim+"_1.npy")
-            
             data_gem = np.load(data_p_gem)
             dates_gem =  dates #np.load(date_p_gem) # Use AMF dates
 
