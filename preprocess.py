@@ -28,18 +28,22 @@ for c_var, variable in enumerate(variables) :
     else:
         str_vars = str_vars + '-' + variable
 
-path_in = p.path_in_r
-path_out=path_in+'../AMF_corrected/'
+#path_in = p.path_in_r
+path_data = p.path_data
+path_dates = p.path_dates
+path_stats = p.path_stats
+path_z0 = p.path_z0
+path_out=p.path_amf_corrected
 print(path_out)
 os.system('mkdir -p ' + path_out)
 vars_ind={}
 for ivar,var in enumerate(variables):
     vars_ind[var]=ivar
 
-stations=np.load(path_in+'stats-selected.npy')
-lat_stats=np.load(path_in+'stats-lats.npy')
-lon_stats=np.load(path_in+'stats-lons.npy')
-height_stats=np.load(path_in+'stats-heights.npy')
+stations=np.load(path_stats+'stats-selected.npy')
+lat_stats=np.load(path_stats+'stats-lats.npy')
+lon_stats=np.load(path_stats+'stats-lons.npy')
+height_stats=np.load(path_stats+'stats-heights.npy')
 regimes=['all','neutral','stable','unstable']
 regimes=['all','neutral','stable','unstable']
 sources=['AMF','AMFc-BEL_withoutz0','AMFc-BEL_withz0','GEM']
@@ -49,7 +53,7 @@ sea_months={'DJF':[12,1,2],'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11]}
 
 dic_z0={}
 for sim in simulations:
-    with open(path_in+'/z0_GEM/'+sim+'_mean_z0_pickle','rb') as s:
+    with open(path_z0+sim+'_mean_z0_pickle','rb') as s:
         temp=pickle.load(s)
         print(temp.keys())
         print(len(temp))
@@ -59,7 +63,7 @@ for sim in simulations:
             z0_t.append(temp[st])
     dic_z0[sim]=np.asarray(z0_t)
 
-AMF_stats_z0=np.load(path_in+'/stats-z0.npy')
+AMF_stats_z0=np.load(path_stats+'/stats-z0.npy')
 
 """
 cond=((AMF_stats_z0>0.01) & (AMF_stats_z0<0.1))
@@ -98,10 +102,10 @@ for z0 in z0s:
                 else:
                     indtemp2=indtemp1
                 for stat in stations[indtemp2]:
-                    paths.append(glob.glob(path_in+source+'_data_*'+stat+'_2015-2020_'+str_vars+'_'+sim+'_1.npy')[0])
+                    paths.append(glob.glob(path_data+source+'_data_*'+stat+'_2015-2020_'+str_vars+'_'+sim+'_1.npy')[0])
             else:
                 for stat in stations[indtemp1]:
-                    paths.append(glob.glob(path_in+source+'_data_*'+stat+'_2015-2020_'+str_vars+'_1.npy')[0])
+                    paths.append(glob.glob(path_data+source+'_data_*'+stat+'_2015-2020_'+str_vars+'_1.npy')[0])
 
             print('number of stations: ',len(paths))
             print('Processing simulation: ',source+' - '+sim)
@@ -110,10 +114,15 @@ for z0 in z0s:
                 print(path)
                 data_stat = np.load(path,allow_pickle=True)
                 if source[:3]=='AMF':
-                    dates_stat = np.load(path.replace(source+'_data_','AMF_dates_'))
+                    if 'AMFc' in path:
+                        # I don't really like how this is done.
+                        station=path.split("_")[3]+"_"+path.split("_")[4]
+                        dates_stat = np.load(path_dates+f"AMF_dates_{station}_2015-2020_WS-USTAR-ZL-TA-H-LE-PA-RH_1.npy")
+                    else:
+                         dates_stat = np.load(path.replace('data','dates'))
                 else:
                     station=path.split("_")[2]+"_"+path.split("_")[3]
-                    dates_stat = np.load(path_in+f"AMF_dates_{station}_2015-2020_WS-USTAR-ZL-TA-H-LE-PA-RH_1.npy") #np.load(path.replace('_data_','_dates_')) Use amf dates
+                    dates_stat = np.load(path_dates+f"AMF_dates_{station}_2015-2020_WS-USTAR-ZL-TA-H-LE-PA-RH_1.npy") #np.load(path.replace('_data_','_dates_')) Use amf dates
 
                 stat_data.append(dates_stat.shape[0])
                 if j==0:

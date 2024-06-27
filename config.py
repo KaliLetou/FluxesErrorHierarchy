@@ -1,8 +1,11 @@
 import datetime as dt
 
 class params:
-    path_in_r = '/home/whittaker/Documents/validateBL/SAVE-WINDS/data/'
-    path_in = '/home/whittaker/Documents/validateBL/SAVE-WINDS/AMF_corrected/'
+    path_data = '/home/whittaker/Documents/validateBL/SAVE-WINDS/data/'
+    path_dates = '/home/whittaker/Documents/validateBL/SAVE-WINDS/dates/'
+    path_z0 = '/home/whittaker/Documents/validateBL/SAVE-WINDS/z0_GEM/'
+    path_stats = '/home/whittaker/Documents/validateBL/SAVE-WINDS/stats/'
+    path_amf_corrected = '/home/whittaker/Documents/validateBL/SAVE-WINDS/AMF_corrected/'
     path_out = 'png/'
     variables_dic=[[ 'WS', 'USTAR', 'ZL', 'TA', 'H', 'LE','PA','RH']]
     simulations=['NAM-11m_ERA5_GEM5_CLASS_NEWVEG_newP3-SCPF_SN8hrs_Lakes','NAM-11m_GEM511_ERA5_CLASS_USGS_Delage_SN8','NAM-11m_GEM511_ERA5_CLASS_USGS_SN8','NAM-11m_GEM511_ERA5_CLASS_USGS_SN8_CLASSusesISBA-Z0','NAM-11m_GEM511_ERA5_ISBA_USGS_SN8','NAM-11m_GEM511_ERA5_CLASS_USGS_SN8_TOFD']
