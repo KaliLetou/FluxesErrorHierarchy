@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore") # Ignore annoying matplotlib warnings
 def main():
     # Setup con
     p = config.params()
-    simulation_names = p.simulations                                                                                                                                
+    simulation_names = p.simulations  
     variables_dic  = p.variables_dic
     varname_dic   = utils.variables.names
     varunit_dic   = utils.variables.units
@@ -55,6 +55,9 @@ def main():
     sources=['AMFc-BEL_withz0','GEM']
     dpi=300
     lw=5
+    plt.rcParams.update({'font.size':18})
+    plt.rcParams.update({'legend.fontsize':14})
+    plt.rcParams['figure.constrained_layout.use'] = True
     
     term_names=utils.constants.term_names
     term_error_names=utils.constants.term_error_names
@@ -405,7 +408,7 @@ def main():
     plt.ylabel(r'$\overline{u_{h}}$'+' ('+varunit_dic['WS']+')')
     plt.ylim([3,4.5])
     plt.legend()
-    plt.savefig(path_out+"amprinf_diu")
+    plt.savefig(path_out+"amprinf_diu",dpi=dpi)
     plt.close()
 
     # Annual cycle AMF
@@ -418,7 +421,7 @@ def main():
     plt.ylim([3,4.5])
     plt.legend()
     plt.xticks(np.arange(1,13), month_names)
-    plt.savefig(path_out+"amf_ann")
+    plt.savefig(path_out+"amf_ann",dpi=dpi)
     plt.close()
 
     # Intensity and freq for AMF
@@ -443,7 +446,7 @@ def main():
     plt.xticks(np.arange(0,12), month_names)
     plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
     plt.title('AMF')
-    plt.savefig(path_out+"AMF_WS_ann-diu")
+    plt.savefig(path_out+"AMF_WS_ann-diu",dpi=dpi)
     plt.close()
 
     bbox = dict(boxstyle='round', fc='grey', ec='white', alpha=0.5)
@@ -492,7 +495,7 @@ def main():
         plt.xscale("log")
         plt.yscale("log")
         plt.xlim([0,22])
-        plt.savefig(path_out+p.sim_name[key]+"_dist")
+        plt.savefig(path_out+p.sim_name[key]+"_dist",dpi=dpi)
         plt.close()
 
         #print("Mean error for sim : "+ p.sim_name[key])
@@ -510,7 +513,7 @@ def main():
         plt.plot(hours,gem_diu,label=p.sim_name[key],lw=lw,color='r')
         plt.xlabel("Local Hour")
         plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-        plt.savefig(path_out+p.sim_name[key]+"_diu_error")
+        plt.savefig(path_out+p.sim_name[key]+"_diu_error",dpi=dpi)
         plt.close()
 
         diu_error[key] = gem_diu-diu_amf
@@ -526,7 +529,7 @@ def main():
         plt.plot(months,ann_amf,label="AMF",color='k',lw=lw)
         plt.plot(months,gem_ann,label=p.sim_name[key],lw=lw,color='r')
         plt.xlabel("Month")
-        plt.savefig(path_out+p.sim_name[key]+"_ann_error")
+        plt.savefig(path_out+p.sim_name[key]+"_ann_error",dpi=dpi)
         plt.close()
 
         ann_error[key] = gem_ann-ann_amf
@@ -561,7 +564,7 @@ def main():
         plt.xticks(np.arange(0,12), month_names)
         plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
         plt.title(p.sim_name[key]+ ' - biased')
-        plt.savefig(path_out+p.sim_name[key]+"_error_diu-ann")
+        plt.savefig(path_out+p.sim_name[key]+"_error_diu-ann",dpi=dpi)
         plt.close()
 
         # Compute all error
@@ -583,7 +586,7 @@ def main():
         plt.xticks(np.arange(0,12), month_names)
         plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
         plt.title(p.sim_name[key]+ ' - unbiased')
-        plt.savefig(path_out+p.sim_name[key]+"_error_diu-ann_nb")
+        plt.savefig(path_out+p.sim_name[key]+"_error_diu-ann_nb",dpi=dpi)
         plt.close()
 
     # Plot diu and ann error cycles
@@ -597,7 +600,7 @@ def main():
     plt.ylim([-1.2,1.2])
     plt.xlim([0,25])
     plt.text(1, 1., 'biased', bbox=bbox)
-    plt.savefig(path_out+"diu_error")
+    plt.savefig(path_out+"diu_error",dpi=dpi)
 
     plt.figure(dpi=dpi)
     plt.plot([0,13],[0,0],color='grey',linewidth=.75)
@@ -609,7 +612,7 @@ def main():
     plt.xticks(np.arange(1,13), month_names)
     plt.xlim([0,13])
     plt.text(1, 1., 'biased', bbox=bbox)
-    plt.savefig(path_out+"ann_error")
+    plt.savefig(path_out+"ann_error",dpi=dpi)
 
     plt.figure(dpi=dpi)
     plt.plot([0,13],[0,0],color='grey',linewidth=.75)
@@ -621,7 +624,7 @@ def main():
     plt.xticks(np.arange(1,13), month_names)
     plt.xlim([0,13])
     plt.text(1, 1., 'unbiased', bbox=bbox)
-    plt.savefig(path_out+"ann_error_nb")
+    plt.savefig(path_out+"ann_error_nb",dpi=dpi)
 
     plt.figure(dpi=dpi)
     plt.plot([0,25],[0,0],color='grey',linewidth=.75)
@@ -633,7 +636,7 @@ def main():
     plt.ylim([-1.2,1.2])
     plt.xlim([0,25])
     plt.text(1, 1., 'unbiased', bbox=bbox)
-    plt.savefig(path_out+"diu_error_nb")
+    plt.savefig(path_out+"diu_error_nb",dpi=dpi)
 
     # Plot dist in on figure
     plt.figure(dpi=dpi)
@@ -643,7 +646,7 @@ def main():
     plt.ylabel(r'$N_{k}$')
     plt.yscale("log")
     plt.xlim([0,22])
-    plt.savefig(path_out+"AMF_fi")
+    plt.savefig(path_out+"AMF_fi",dpi=dpi)
     plt.close()
 
     # Plot dist in on figure
@@ -655,7 +658,7 @@ def main():
     plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$')
     plt.xlim([0,22])
     plt.legend()                                                                                                                                                              
-    plt.savefig(path_out+"error_fi")
+    plt.savefig(path_out+"error_fi",dpi=dpi)
     plt.close()
     plt.close('all')
     nn=6
@@ -684,7 +687,7 @@ def main():
         plt.ylim([0.00005,2.])
         plt.xlim([0,nn+1])
         plt.text(.25, 1.,title, bbox=bbox)
-        plt.savefig(path_out+"abs_errors_"+title)
+        plt.savefig(path_out+"abs_errors_"+title,dpi=dpi)
         plt.close()
         
         for c_key,key in enumerate(gem_int_per_station.keys()):
@@ -694,7 +697,7 @@ def main():
         plt.ylim([0,1.1])
         plt.xlim([0,nn+1])
         plt.text(.25,1.,title, bbox=bbox)
-        plt.savefig(path_out+"norm_errors_"+title)
+        plt.savefig(path_out+"norm_errors_"+title,dpi=dpi)
         plt.close()
 
 if __name__ == '__main__':
