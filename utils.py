@@ -6,9 +6,13 @@ class variables:
   """
   names={'WS':'Wind Speed','LE':'Latent heat flux','H':'Sensible heat flux','SWC':'Soil water content','P':'Precipitation','USTAR':'Friction velocity','WD':'Wind direction',
          'SW_IN':'Shortwave radiation, incoming',         'SW_OUT':'Shortwave radiation, outgoing',         'LW_IN':'Longwave radiation, incoming',         'LW_OUT':'Longwave radiation, outgoing','G':'Soil heat flux', 'ZL':'Stability parameter','PA':'Atmospheric pressure','RH':'Relative humidity','TS':'Skin temperature','TA':'2-m temperature','VPD':'Vapor Pressure Deficit','Rn':'Net radiation','SWn':'Net shortwave radiation','LWn':'Net longwave radiation'}
-  units={'bilan':r'W m$^{-2}$','WS':'m s$^{-1}$', 'LE':r'W m$^{-2}$','H':r'W m$^{-2}$','SWC':'%','P':'mm','USTAR':'m s$^{-1}$','WD':'degrees','SW_IN': r'W m$^{-2}$','SW_OUT':r'W m$^{-2}$','LW_IN':r'W m$^{-2}$','LW_OUT':r'W m$^{-2}$','G':r'W m$^{-2}$','ZL':'-','PA':'kPa','RH':'%','TA':'deg C','TS':r'$^{\circ}$C','VPD':'hPa','Rn':r'W m$^{-2}$','SWn':r'W m$^{-2}$','LWn':r'W m$^{-2}$'}
+  units={'bilan':r'W m$^{-2}$','WS':'m s$^{-1}$', 'LE':r'W m$^{-2}$','H':r'W m$^{-2}$','SWC':'%','P':'mm','USTAR':'m s$^{-1}$','WD':'degrees','SW_IN': r'W m$^{-2}$','SW_OUT':r'W m$^{-2}$','LW_IN':r'W m$^{-2}$','LW_OUT':r'W m$^{-2}$','G':r'W m$^{-2}$','ZL':'-','PA':'kPa','RH':'%','TA':r'$K$','TS':r'$^{\circ}$C','VPD':'hPa','Rn':r'W m$^{-2}$','SWn':r'W m$^{-2}$','LWn':r'W m$^{-2}$'}
+  symbols={'WS':r'$u$','USTAR':r'$u_{*}$','ZL':r'$zL^{-1}$','TA':r'$T_a$','TA':r'$T_a$','PA':r'$p$','RH':r'$RH$','LE':r'$LE$','H':r'$H$','P':r'$P$'}
   min_value={'WS':0, 'LE':-1000.,'H':-1000.,'SWC':0,'P':0,'USTAR':0.0001,'WD':0,'SW_IN':-10.,'SW_OUT':-10.,'LW_IN':-10,'LW_OUT':-10,'G':-400.,'ZL':-5000000.,'PA':70.,'RH':0,'TA':-50.,'TS':-50.,'VPD':0}
   max_value={'WS':50,'LE':1000.,'H':1000.,'SWC':100,'P':200,'USTAR':20.,'WD':3600,'SW_IN':1500,'SW_OUT':1500,'LW_IN':1500,'LW_OUT':900,'G':400,'ZL':5000000.,'PA':110.,'RH':100.1,'TA':50.,'TS':50.,'VPD':100}
+  hm_limits={'WS':[0,8],'USTAR':[0,.6],'ZL':[-.75,.75],'TA':[0,25],'PA':[99,102],'RH':[0,100],'LE':[0,125],'H':[-50,250],'P':[0,.2]}
+  mm_limits={'WS':[0,5],'USTAR':[0,.5],'ZL':[-.1,.5],'TA':[0,25],'PA':[99,102],'RH':[0,100],'LE':[0,125],'H':[-50,250],'P':[0,.2]}
+  pdf_limits={'WS':[0,20],'USTAR':[0,1.6],'ZL':[-.75,.75],'TA':[-25,45],'PA':[85,110],'RH':[0,100],'LE':[-100,600],'H':[-200,600],'P':[0,20]}
 
 
 class constants:
@@ -32,6 +36,7 @@ class constants:
   data_names={'AMF':'AmeriFlux','GEM':'CRCM6/GEM5'}
   term_names={'int':r'$\overline{u}$','freq':r'$p$','tot':r'$p \overline{u}$'}
   term_error_names={'int':r'$N^{o} \cdot \Delta \overline{u}$','freq':r'$\overline{u^{o}} \cdot \Delta N$','tot':r'$\Delta (N \cdot \overline{u})$','residual':r'$\Delta \overline{u} \cdot \Delta N$'}
+  sea_months={'ANN':[1,2,3,4,5,6,7,8,9,10,11,12],'DJF':[12,1,2],'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11]}
 
 def get_mask(array,mask=None):
     missing_m = np.ma.masked_array(array,array==constants.missing_value).mask

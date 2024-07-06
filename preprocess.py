@@ -44,33 +44,27 @@ stations=np.load(path_stats+'stats-selected.npy')
 lat_stats=np.load(path_stats+'stats-lats.npy')
 lon_stats=np.load(path_stats+'stats-lons.npy')
 height_stats=np.load(path_stats+'stats-heights.npy')
-regimes=['all','neutral','stable','unstable']
-regimes=['all','neutral','stable','unstable']
-sources=['AMF','AMFc-BEL_withoutz0','AMFc-BEL_withz0','GEM']
-z0s=['all','low','mid','hig','p01-p1']
-seasons=['DJF','MAM','JJA','SON']
-sea_months={'DJF':[12,1,2],'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11]}
+regimes=p.regimes
+sources=p.sources
+z0s=p.z0s
+seasons=p.seasons
+sea_months=utils.constants.sea_months
 
 dic_z0={}
+print('Read z0 from simulations')
 for sim in simulations:
     with open(path_z0+sim+'_mean_z0_pickle','rb') as s:
         temp=pickle.load(s)
-        print(temp.keys())
-        print(len(temp))
+        #print(temp.keys())
+        #print(len(temp))
         z0_t=[]
         for st in stations:
-            print(st)
+            #print(st)
             z0_t.append(temp[st])
     dic_z0[sim]=np.asarray(z0_t)
 
 AMF_stats_z0=np.load(path_stats+'/stats-z0.npy')
 
-"""
-cond=((AMF_stats_z0>0.01) & (AMF_stats_z0<0.1))
-for sim in simulations:
-    print(np.sum(cond))
-    cond=cond & ((dic_z0[sim]>0.01) & (dic_z0[sim]<0.1))
-"""
 for z0 in z0s:
     indices=np.argsort(AMF_stats_z0)
     addout=''
