@@ -2,12 +2,12 @@ import datetime as dt
 
 class params:
     # Paths
-    path_data = '/pampa/diluca/SAVE-WINDS/data/'
-    path_dates = '/pampa/diluca/SAVE-WINDS/dates/'
-    path_z0 = '/pampa/diluca/SAVE-WINDS/z0_GEM/'
-    path_stats = '/pampa/diluca/SAVE-WINDS/stats/'
-    path_amf_corrected = '/pampa/diluca/SAVE-WINDS/AMF_corrected/'
-    path_out = '/pampa/diluca/SAVE-WINDS/png/'
+    path_data = '../SAVE-WINDS/data/'
+    path_dates = '../SAVE-WINDS/dates/'
+    path_z0 = '../SAVE-WINDS/z0_GEM/'
+    path_stats = '../SAVE-WINDS/stats/'
+    path_amf_corrected = '../SAVE-WINDS/AMF_corrected/'
+    path_out = '../SAVE-WINDS/png/'
     variables_dic=[[ 'WS', 'USTAR', 'ZL', 'TA', 'H', 'LE','PA','RH']]
     simulations=['NAM-11m_ERA5_GEM5_CLASS_NEWVEG_newP3-SCPF_SN8hrs_Lakes','NAM-11m_GEM511_ERA5_CLASS_USGS_Delage_SN8','NAM-11m_GEM511_ERA5_CLASS_USGS_SN8','NAM-11m_GEM511_ERA5_CLASS_USGS_SN8_CLASSusesISBA-Z0','NAM-11m_GEM511_ERA5_ISBA_USGS_SN8','NAM-11m_GEM511_ERA5_CLASS_USGS_SN8_TOFD']
     
