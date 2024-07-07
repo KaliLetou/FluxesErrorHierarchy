@@ -661,6 +661,37 @@ def main():
     plt.savefig(path_out+"error_fi",dpi=dpi)
     plt.close()
     plt.close('all')
+
+    plt.figure(figsize=(8,5),dpi=dpi)
+    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
+    for key in gem_int_per_station.keys():
+        plt.step(bins[:-1],bins_c*abs(histo_sims[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
+
+    plt.yscale("log")
+    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
+    plt.ylabel(r'$|N^{s}_{k}-N^{o}_{k}| \cdot u^{o}_{k}$')
+
+    plt.xlim([0,22])
+    #plt.legend()
+    plt.savefig(path_out+"error_fi_abs-log",dpi=dpi)
+    plt.close()
+
+    plt.figure(figsize=(8,5),dpi=dpi)
+    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
+    for key in gem_int_per_station.keys():
+        err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
+        plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
+
+    plt.yscale("log")
+    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
+    plt.ylabel('relative error (%)')
+    #plt.yscale("log")
+    plt.xlim([0,22])
+    #plt.legend()
+    plt.savefig(path_out+"error_fi_abs-log-rel")
+    plt.close()
+    plt.close('all')
+
     nn=6
     errors_norm=cp.deepcopy(errors_all)
     for ii in range(2):
