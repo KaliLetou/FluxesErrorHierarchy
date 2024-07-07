@@ -16,7 +16,7 @@ python3.8 -m pip install -r requirements.txt
 
 ### Input data
 
-The script expects the data from doi:...
+The script expects the data from doi: [https://doi.org/10.5683/SP3/VWMCY0]
 
 ### Running the Script
 First adjust the paths in 
