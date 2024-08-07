@@ -135,6 +135,28 @@ def error_decomposition_taylor(var_tot,terms,Im,Nm,Io,No):
         var_tot[3,:]=(Im-Io)*(Nm-No)
     #pdb.set_trace()
     return var_tot
+    
+def percent_error_decomposition_taylor(var_tot,terms,Im,Nm,Io,No):
+    """
+    This functions calculate errors for the difference between two functions of the form f=I*N is used.
+
+    Created: 01/08/2020
+    Last Modification:
+    - 01/08/2020:
+       I
+    """
+    factor=1.
+    for term in terms:
+      if term=='tot':
+        var_tot[0,:]=factor*(Im*Nm-Io*No) / Io*No 
+      if term=='int':
+        var_tot[2,:]=factor*(Im-Io)*No / (Io*No)  
+      if term=='freq':
+        var_tot[1,:]=factor*(Nm-No)*Io / (Io*No)
+      if term=='residual':
+        var_tot[3,:]=(Im-Io)*(Nm-No)
+    #pdb.set_trace()
+    return var_tot
 
 #############
 def error_illdefined(var_tot,terms,Im,Nm,Io,No):
