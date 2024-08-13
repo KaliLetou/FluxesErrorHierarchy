@@ -159,8 +159,15 @@ def main():
                 var_errors      = np.zeros((len(terms),freq_bin.shape[0],freq_bin.shape[1]))
                 var_errors      = utils.error_decomposition_taylor(var_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
                 var_errors      = utils.error_illdefined(var_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
+
+                var_perc_errors      = np.zeros((len(terms),freq_bin.shape[0],freq_bin.shape[1]))
+                var_perc_errors = utils.percent_error_decomposition_taylor(var_perc_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
+                var_perc_errors      = utils.error_illdefined(var_perc_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
+
                 factor          = 1
                 var_errors      = var_errors/factor
+                var_perc_errors      = var_perc_errors/factor
+                
                 for term in ['int','freq','tot'] :
                     if term=='int':
                         cmap = plt.get_cmap('viridis')
@@ -219,6 +226,53 @@ def main():
                     plt.close()
                 
                 for c_term,term in enumerate(terms):
+                    Z = var_perc_errors[c_term,:].T
+                    if term == 'tot' :
+                        Zmax = np.ceil(np.abs(Z).max())
+                    Zmax=.3
+                    levels = MaxNLocator(nbins=11, symmetric=True).tick_values(-1*Zmax, Zmax)
+                    levels = levels[levels != 0]
+                    cmap   = plt.get_cmap('PiYG')
+                    norm   = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+                    cmap.set_bad( "gray", alpha=0 )
+                    plt.title(term_error_names[term] + r' ($\epsilon_{percent}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
+                    plt.title(sim_name[sim])
+                    plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
+                    plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
+                    plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                    for m in range(5):
+                        for h in range(5):
+                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
+                    plt.pcolormesh(Z, cmap=cmap, norm=norm)
+                    #plt.legend()
+                    cbar = plt.colorbar(extend='both')
+                    cbar.set_label(term_error_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
+                    fig_name = path_out+ 'binning_mean_perc_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                    plt.savefig(fig_name, bbox_inches='tight')
+                    
+                    plt.close()
+                    if term == 'tot' :
+                        Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
+                        Zmax=.5
+                        levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
+                        cmap   = plt.get_cmap('cool')
+                        norm=colors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
+                        cmap.set_bad( "gray", alpha=0 )
+                        plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
+                        plt.title(sim_name[sim])
+                        plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
+                        plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
+                        plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                        plt.pcolormesh(Z, cmap=cmap, norm=norm)
+                        #plt.legend()
+                        cbar = plt.colorbar(extend='max')
+                        cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
+                        fig_name = path_out+ 'binning_mean_perc_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                        plt.savefig(fig_name, bbox_inches='tight')
+                        plt.close()
+
+                    
+                for c_term,term in enumerate(terms):
                     Z = var_errors[c_term,:].T
                     if term == 'tot' :
                         Zmax = np.ceil(np.abs(Z).max())
@@ -237,7 +291,7 @@ def main():
                         for h in range(5):
                             plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
-                    plt.legend()
+                    #plt.legend()
                     cbar = plt.colorbar(extend='both')
                     cbar.set_label(term_error_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
                     fig_name = path_out+ 'binning_mean_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
@@ -257,7 +311,7 @@ def main():
                         plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
                         plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
-                        plt.legend()
+                        #plt.legend()
                         cbar = plt.colorbar(extend='max')
                         cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
                         fig_name = path_out+ 'binning_mean_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
