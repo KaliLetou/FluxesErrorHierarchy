@@ -206,6 +206,9 @@ def main():
                     plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=0)
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=0)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
+                    for m in range(5):
+                        for h in range(5):
+                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
                     cbar = plt.colorbar(extend='max')
                     if term in ['int','tot'] :
                         cbar.set_label(term_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
@@ -230,6 +233,9 @@ def main():
                     plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
                     plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                    for m in range(5):
+                        for h in range(5):
+                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
                     plt.legend()
                     cbar = plt.colorbar(extend='both')
