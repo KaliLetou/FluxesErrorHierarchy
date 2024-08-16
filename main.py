@@ -473,7 +473,7 @@ def main():
     plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
     plt.ylabel(r'$\overline{u_{h}}$'+' ('+varunit_dic['WS']+')')
     plt.ylim([3,4.5])
-    plt.legend()
+    #plt.legend()
     plt.savefig(path_out+"amprinf_diu",dpi=dpi)
     plt.close()
 
@@ -485,7 +485,7 @@ def main():
     plt.xlabel('Month')
     plt.ylabel(r'$\overline{u_{m}}$'+' ('+varunit_dic['WS']+')')
     plt.ylim([3,4.5])
-    plt.legend()
+    #plt.legend()
     plt.xticks(np.arange(1,13), month_names)
     plt.savefig(path_out+"amf_ann",dpi=dpi)
     plt.close()
@@ -558,7 +558,7 @@ def main():
         plt.step(bins[:-1],histo_sims[key],where='post',label=p.sim_name[key],color='r')
         plt.axvline(x=np.mean(amf_ws),color='k',ls='--')
         plt.axvline(x=np.mean(sim_ws),color='r',ls='--')
-        plt.legend(loc='best')
+        #plt.legend(loc='best')
         plt.xscale("log")
         plt.yscale("log")
         plt.xlim([0,22])
@@ -724,12 +724,12 @@ def main():
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$')
     plt.xlim([0,22])
-    plt.legend()                                                                                                                                                              
+    plt.text(15, -300000.,"unbiased", bbox=bbox)
     plt.savefig(path_out+"error_fi_unbiased",dpi=dpi)
     plt.close()
     plt.close('all')
 
-    plt.figure(figsize=(8,5),dpi=dpi)
+    plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         plt.step(bins[:-1],bins_c*abs(histo_sims_unbiased[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
@@ -740,10 +740,11 @@ def main():
 
     plt.xlim([0,22])
     #plt.legend()
+    plt.text(.25, 1.,"unbiased", bbox=bbox)
     plt.savefig(path_out+"error_fi_unbiased_abs-log",dpi=dpi)
     plt.close()
 
-    plt.figure(figsize=(8,5),dpi=dpi)
+    plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         err=abs(histo_sims_unbiased[key]-histo_amf)/(histo_amf+histo_sims_unbiased[key])
@@ -755,20 +756,21 @@ def main():
     #plt.yscale("log")
     plt.xlim([0,22])
     #plt.legend()
+    plt.text(.25, 1.,"unbiased", bbox=bbox)
     plt.savefig(path_out+"error_fi_unbiased_abs-log-rel")
     plt.close()
 
+    plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
-        err=abs(histo_sims_unbiased[key]-histo_amf)/(histo_amf+histo_sims_unbiased[key])
+        err=(histo_sims_unbiased[key]-histo_amf)/(histo_amf+histo_sims_unbiased[key])
         plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
 
-    plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
-    #plt.yscale("log")
     plt.xlim([0,22])
     #plt.legend()
-    plt.savefig(path_out+"error_fi_unbiased_abs-log-rel")
+    plt.text(.25, -1.,"unbiased", bbox=bbox)
+    plt.savefig(path_out+"error_fi_unbiased-rel")
     plt.close()
 
     # Plot unbias dist in on figure
@@ -779,12 +781,12 @@ def main():
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$')
     plt.xlim([0,22])
-    plt.legend()                                                                                                                                                              
+    plt.text(15, -50000.,"biased", bbox=bbox)
     plt.savefig(path_out+"error_fi_biased",dpi=dpi)
     plt.close()
     plt.close('all')
 
-    plt.figure(figsize=(8,5),dpi=dpi)
+    plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         plt.step(bins[:-1],bins_c*abs(histo_sims[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
@@ -795,10 +797,11 @@ def main():
 
     plt.xlim([0,22])
     #plt.legend()
+    plt.text(.25, 1.,"biased", bbox=bbox)
     plt.savefig(path_out+"error_fi_biased_abs-log",dpi=dpi)
     plt.close()
 
-    plt.figure(figsize=(8,5),dpi=dpi)
+    plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
@@ -807,23 +810,27 @@ def main():
     plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
-    #plt.yscale("log")
+    plt.yscale("log")
     plt.xlim([0,22])
     #plt.legend()
+    plt.text(.25, 1.,"biased", bbox=bbox)
     plt.savefig(path_out+"error_fi_biased_abs-log-rel")
     plt.close()
 
+    plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
         err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
+        err=(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
         plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
 
-    plt.yscale("log")
+    #plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
     #plt.yscale("log")
     plt.xlim([0,22])
     #plt.legend()
-    plt.savefig(path_out+"error_fi_biased_abs-log-rel")
+    plt.text(.25, -1.,"biased", bbox=bbox)
+    plt.savefig(path_out+"error_fi_biased-rel")
     plt.close()
 
     plt.close('all')
