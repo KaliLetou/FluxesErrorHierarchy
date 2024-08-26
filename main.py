@@ -226,7 +226,8 @@ def main():
                     plt.close()
                 
                 for c_term,term in enumerate(terms):
-                    Z = var_perc_errors[c_term,:].T
+                    Z = var_perc_errors[c_term,:].T*100
+                    Z_v = var_errors[c_term,:].T
                     if term == 'tot' :
                         Zmax = np.ceil(np.abs(Z).max())
                     Zmax=100
@@ -242,7 +243,7 @@ def main():
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
                     for m in range(5):
                         for h in range(5):
-                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
+                            plt.text(m+0.5,h+0.5,f'{Z_v[h, m]:.3f}', ha='center', va='center', color='black',fontsize=10)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
                     #plt.legend()
                     cbar = plt.colorbar(extend='both')
@@ -253,7 +254,8 @@ def main():
                     plt.close()
                     if term == 'tot' :
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
-                        Zmax=.5
+                        #Z_v = np.sum(abs(var_errors[1:,:,:]),axis=0).T
+                        Zmax=0.5
                         levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
                         cmap   = plt.get_cmap('cool')
                         norm=colors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
@@ -269,7 +271,7 @@ def main():
                                 plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
                         #plt.legend()
                         cbar = plt.colorbar(extend='max')
-                        cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + '] (%)')
+                        cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
                         fig_name = path_out+ 'binning_mean_perc_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                         plt.savefig(fig_name, bbox_inches='tight')
                         plt.close()
@@ -720,7 +722,7 @@ def main():
     plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
-        plt.step(bins[:-1],bins_c*(histo_sims_unbiased[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)     
+        plt.step(bins[:-1],bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)     
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$')
     plt.xlim([0,22])
@@ -732,7 +734,7 @@ def main():
     plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
-        plt.step(bins[:-1],bins_c*abs(histo_sims_unbiased[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
+        plt.step(bins[:-1],bins_c*abs(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
 
     plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
@@ -747,7 +749,7 @@ def main():
     plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
-        err=abs(histo_sims_unbiased[key]-histo_amf)/(histo_amf+histo_sims_unbiased[key])
+        err=abs(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
         plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
 
     plt.yscale("log")
@@ -762,7 +764,7 @@ def main():
 
     plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
-        err=(histo_sims_unbiased[key]-histo_amf)/(histo_amf+histo_sims_unbiased[key])
+        err=(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
         plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
 
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
