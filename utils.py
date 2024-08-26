@@ -148,13 +148,13 @@ def percent_error_decomposition_taylor(var_tot,terms,Im,Nm,Io,No):
     factor=1.
     for term in terms:
       if term=='tot':
-        var_tot[0,:]=factor*(Im*Nm-Io*No) / Io*No 
+        var_tot[0,:]=factor*(Im*Nm-Io*No) / (Io*No+Im*Nm)
       if term=='int':
-        var_tot[2,:]=factor*(Im-Io)*No / (Io*No)  
+        var_tot[2,:]=factor*(Im-Io)*No / (Io*No+Im*Nm)
       if term=='freq':
-        var_tot[1,:]=factor*(Nm-No)*Io / (Io*No)
+        var_tot[1,:]=factor*(Nm-No)*Io / (Io*No+Im*Nm)
       if term=='residual':
-        var_tot[3,:]=(Im-Io)*(Nm-No)
+        var_tot[3,:]=(Im-Io)*(Nm-No) / (Io*No+Im*Nm)
     #pdb.set_trace()
     return var_tot
 
