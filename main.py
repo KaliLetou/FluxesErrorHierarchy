@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 import xarray as xr
 import warnings
 import copy as cp
+import sys
+import pdb
 
 warnings.filterwarnings("ignore") # Ignore annoying matplotlib warnings
 
@@ -55,8 +57,8 @@ def main():
     sources=['AMFc-BEL_withz0','GEM']
     dpi=300
     lw=5
-    plt.rcParams.update({'font.size':18})
-    plt.rcParams.update({'legend.fontsize':14})
+    plt.rcParams.update({'font.size':19})
+    plt.rcParams.update({'legend.fontsize':15})
     plt.rcParams['figure.constrained_layout.use'] = True
     
     term_names=utils.constants.term_names
@@ -215,7 +217,7 @@ def main():
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
                     for m in range(5):
                         for h in range(5):
-                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
+                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                     cbar = plt.colorbar(extend='max')
                     if term in ['int','tot'] :
                         cbar.set_label(term_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
@@ -243,7 +245,7 @@ def main():
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
                     for m in range(5):
                         for h in range(5):
-                            plt.text(m+0.5,h+0.5,f'{Z_v[h, m]:.3f}', ha='center', va='center', color='black',fontsize=10)
+                            plt.text(m+0.5,h+0.5,f'{Z_v[h, m]:.3f}', ha='center', va='center', color='black',fontsize=11)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
                     #plt.legend()
                     cbar = plt.colorbar(extend='both')
@@ -268,7 +270,7 @@ def main():
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
                         for m in range(5):
                             for h in range(5):
-                                plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
+                                plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                         #plt.legend()
                         cbar = plt.colorbar(extend='max')
                         cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
@@ -294,7 +296,7 @@ def main():
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
                     for m in range(5):
                         for h in range(5):
-                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
+                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
                     #plt.legend()
                     cbar = plt.colorbar(extend='both')
@@ -318,7 +320,7 @@ def main():
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
                         for m in range(5):
                             for h in range(5):
-                                plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=10)
+                                plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                         #plt.legend()
                         cbar = plt.colorbar(extend='max')
                         cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
@@ -476,7 +478,7 @@ def main():
     plt.ylabel(r'$\overline{u_{h}}$'+' ('+varunit_dic['WS']+')')
     plt.ylim([3,4.5])
     #plt.legend()
-    plt.savefig(path_out+"amprinf_diu",dpi=dpi)
+    plt.savefig(path_out+"amf_diu",dpi=dpi)
     plt.close()
 
     # Annual cycle AMF
@@ -506,7 +508,7 @@ def main():
     # Annotate each cell with the frequency
     for m in range(12):
         for h in range(24):
-            plt.text(m,h,f'{int(freq_bin[h, m])}', ha='center', va='center', color='white',fontsize=10)
+            plt.text(m,h,f'{int(freq_bin[h, m])}', ha='center', va='center', color='white',fontsize=11)
             
     # Set labels and title
     plt.xlabel('Month')
@@ -528,6 +530,7 @@ def main():
     maxWS=30.
     nbins=30
     error_names=['bias','diu','ann','diu-ann','fi','reg']
+    error_names=[r'$\epsilon_{bias}$',r'$\epsilon_{diu}$',r'$\epsilon_{ann}$',r'$\epsilon_{ann,diu}$',r'$\epsilon_{fi}$',r'$\epsilon_{reg}$']
     errors_all=np.zeros((len(error_names),len(gem_int_per_station.keys()),2))
     histo_sims={}
     histo_sims_unbiased={}
@@ -628,8 +631,8 @@ def main():
         lims=2.5
         plt.imshow(error/freq_bin_amf, cmap='seismic', aspect='auto',vmin=-lims,vmax=lims)
         plt.colorbar(label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['WS']+')')
-        plt.xlabel('Months')
-        plt.ylabel('Local Hours')
+        plt.xlabel('Month')
+        plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
         plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
         plt.title(p.sim_name[key]+ ' - biased')
@@ -719,18 +722,22 @@ def main():
     plt.close()
 
     # Plot dist in on figure
+    maxA=0
     plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
-        plt.step(bins[:-1],bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)     
+        plt.step(bins[:-1],bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
+        maxA=np.max((maxA,np.max(np.abs(bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased)))))
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$')
+    plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
     plt.xlim([0,22])
-    plt.text(15, -300000.,"unbiased", bbox=bbox)
+    limA=10**np.ceil(np.log10(maxA))
+    plt.ylim([-30000,30000])
+    plt.text(15, 24000.,"unbiased", bbox=bbox)
     plt.savefig(path_out+"error_fi_unbiased",dpi=dpi)
     plt.close()
     plt.close('all')
-
+     
     plt.figure(dpi=dpi)
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
@@ -738,7 +745,7 @@ def main():
 
     plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$|N^{s}_{k}-N^{o}_{k}| \cdot u^{o}_{k}$')
+    plt.ylabel(r'$|N^{s}_{k}-N^{o}_{k}| \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
 
     plt.xlim([0,22])
     #plt.legend()
@@ -750,7 +757,7 @@ def main():
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         err=abs(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
-        plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
+        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
 
     plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
@@ -765,25 +772,30 @@ def main():
     plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
         err=(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
-        plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-
+        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
     plt.xlim([0,22])
+    plt.ylim([-100,100])
     #plt.legend()
-    plt.text(.25, -1.,"unbiased", bbox=bbox)
+    plt.text(15, 80.,"unbiased", bbox=bbox)
     plt.savefig(path_out+"error_fi_unbiased-rel")
     plt.close()
 
     # Plot unbias dist in on figure
     plt.figure(dpi=dpi)
+    maxA=0
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         plt.step(bins[:-1],bins_c*(histo_sims[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)     
+        maxA=np.max((maxA,np.max(np.abs(bins_c*(histo_sims[key]-histo_amf)))))
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$')
+    plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
     plt.xlim([0,22])
-    plt.text(15, -50000.,"biased", bbox=bbox)
+    limA=10**np.ceil(np.log10(maxA))
+    plt.ylim([-170000,170000])
+    plt.text(17, 140000.,"biased", bbox=bbox)
+    #plt.text(.99, .99, 'biased', ha='right', va='bottom', transform=ax.transAxes, bbox=bbox)
     plt.savefig(path_out+"error_fi_biased",dpi=dpi)
     plt.close()
     plt.close('all')
@@ -792,11 +804,9 @@ def main():
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         plt.step(bins[:-1],bins_c*abs(histo_sims[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-
     plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel(r'$|N^{s}_{k}-N^{o}_{k}| \cdot u^{o}_{k}$')
-
     plt.xlim([0,22])
     #plt.legend()
     plt.text(.25, 1.,"biased", bbox=bbox)
@@ -807,8 +817,7 @@ def main():
     amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
     for key in gem_int_per_station.keys():
         err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
-        plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-
+        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
     plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
@@ -823,15 +832,15 @@ def main():
     for key in gem_int_per_station.keys():
         err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
         err=(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
-        plt.step(bins[:-1],err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-
+        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
     #plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
     #plt.yscale("log")
     plt.xlim([0,22])
     #plt.legend()
-    plt.text(.25, -1.,"biased", bbox=bbox)
+    plt.ylim([-100,100])
+    plt.text(17, 80.,"biased", bbox=bbox)
     plt.savefig(path_out+"error_fi_biased-rel")
     plt.close()
 
@@ -858,18 +867,18 @@ def main():
         for c_key,key in enumerate(gem_int_per_station.keys()):
             plt.plot(np.arange(nn1,nn+1),errors_all[nn1-1:nn,c_key,ii],color=p.sim_color[key],label=p.sim_name[key],marker='o')
         plt.ylabel(r'$\epsilon$'+' ('+varunit_dic['WS']+')')
-        plt.xticks(np.arange(1,nn+1), error_names[:nn])
+        plt.xticks(np.arange(1,nn+1), error_names[:nn], rotation=45)
         plt.yscale("log")
         plt.ylim([0.00005,2.])
         plt.xlim([0,nn+1])
-        plt.text(.25, 1.,title, bbox=bbox)
+        plt.text(.25, .8,title, bbox=bbox)
         plt.savefig(path_out+"abs_errors_"+title,dpi=dpi)
         plt.close()
         
         for c_key,key in enumerate(gem_int_per_station.keys()):
             plt.plot(np.arange(nn1,nn+1),errors_norm[nn1-1:nn,c_key,ii],color=p.sim_color[key],label=p.sim_name[key],marker='o')
         plt.ylabel(r'$\hat{\epsilon}$'+' ('+varunit_dic['WS']+')')
-        plt.xticks(np.arange(1,nn+1), error_names[:nn])
+        plt.xticks(np.arange(1,nn+1), error_names[:nn], rotation=45)
         plt.ylim([0,1.1])
         plt.xlim([0,nn+1])
         plt.text(.25,1.,title, bbox=bbox)
