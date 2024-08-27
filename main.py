@@ -241,8 +241,8 @@ def main():
                     plt.title(term_error_names[term] + r' ($\epsilon_{percent}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
                     plt.title(sim_name[sim])
                     plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
-                    plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
-                    plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                    plt.xticks(np.arange(len(labelsx))+.5, labelsx)
+                    plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                     for m in range(5):
                         for h in range(5):
                             plt.text(m+0.5,h+0.5,f'{Z_v[h, m]:.3f}', ha='center', va='center', color='black',fontsize=11)
@@ -265,8 +265,8 @@ def main():
                         plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
                         plt.title(sim_name[sim])
                         plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
-                        plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
-                        plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                        plt.xticks(np.arange(len(labelsx))+.5, labelsx)
+                        plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
                         for m in range(5):
                             for h in range(5):
@@ -292,8 +292,8 @@ def main():
                     plt.title(term_error_names[term] + r' ($\epsilon_{abs}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
                     plt.title(sim_name[sim])
                     plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
-                    plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
-                    plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                    plt.xticks(np.arange(len(labelsx))+.5, labelsx)
+                    plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                     for m in range(5):
                         for h in range(5):
                             plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
@@ -315,8 +315,8 @@ def main():
                         plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
                         plt.title(sim_name[sim])
                         plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
-                        plt.xticks(np.arange(len(labelsx))+.5, labelsx, rotation=45)
-                        plt.yticks(np.arange(len(labelsy))+.5, labelsy, rotation=45)
+                        plt.xticks(np.arange(len(labelsx))+.5, labelsx)
+                        plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
                         for m in range(5):
                             for h in range(5):
@@ -606,7 +606,7 @@ def main():
 
         ann_error[key] = gem_ann-ann_amf
         ann_error_nb[key] = (gem_ann-np.mean(sim_ws))-(ann_amf-np.mean(amf_ws))
-
+        
         ###############################################
         # ann_diu stuff here
         ###############################################
@@ -666,6 +666,7 @@ def main():
     plt.plot([0,25],[0,0],color='grey',linewidth=.75)
     for key in diu_error:
         plt.plot(np.arange(1,25),diu_error[key], label=p.sim_name[key], color=p.sim_color[key])
+        print(np.mean(diu_error[key]))
     plt.xlabel('Local Hour')
     plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
     plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['WS']+')')
@@ -673,7 +674,7 @@ def main():
     plt.xlim([0,25])
     plt.text(1, 1., 'biased', bbox=bbox)
     plt.savefig(path_out+"diu_error",dpi=dpi)
-
+    
     plt.figure(dpi=dpi)
     plt.plot([0,13],[0,0],color='grey',linewidth=.75)
     for key in ann_error:
@@ -729,46 +730,17 @@ def main():
         plt.step(bins[:-1],bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
         maxA=np.max((maxA,np.max(np.abs(bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased)))))
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
+    #plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
+    plt.ylabel('absolute error ('+varunit_dic['WS']+')')
     plt.xlim([0,22])
     limA=10**np.ceil(np.log10(maxA))
     plt.ylim([-30000,30000])
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
     plt.text(15, 24000.,"unbiased", bbox=bbox)
     plt.savefig(path_out+"error_fi_unbiased",dpi=dpi)
     plt.close()
     plt.close('all')
      
-    plt.figure(dpi=dpi)
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-    for key in gem_int_per_station.keys():
-        plt.step(bins[:-1],bins_c*abs(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-
-    plt.yscale("log")
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$|N^{s}_{k}-N^{o}_{k}| \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
-
-    plt.xlim([0,22])
-    #plt.legend()
-    plt.text(.25, 1.,"unbiased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_unbiased_abs-log",dpi=dpi)
-    plt.close()
-
-    plt.figure(dpi=dpi)
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-    for key in gem_int_per_station.keys():
-        err=abs(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
-        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-
-    plt.yscale("log")
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel('relative error (%)')
-    #plt.yscale("log")
-    plt.xlim([0,22])
-    #plt.legend()
-    plt.text(.25, 1.,"unbiased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_unbiased_abs-log-rel")
-    plt.close()
-
     plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
         err=(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
@@ -791,42 +763,16 @@ def main():
         maxA=np.max((maxA,np.max(np.abs(bins_c*(histo_sims[key]-histo_amf)))))
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
+    plt.ylabel('absolute error ('+varunit_dic['WS']+')')
     plt.xlim([0,22])
     limA=10**np.ceil(np.log10(maxA))
-    plt.ylim([-170000,170000])
-    plt.text(17, 140000.,"biased", bbox=bbox)
+    plt.ylim([-300000,300000])
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    plt.text(17, 160000.,"biased", bbox=bbox)
     #plt.text(.99, .99, 'biased', ha='right', va='bottom', transform=ax.transAxes, bbox=bbox)
     plt.savefig(path_out+"error_fi_biased",dpi=dpi)
     plt.close()
     plt.close('all')
-
-    plt.figure(dpi=dpi)
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-    for key in gem_int_per_station.keys():
-        plt.step(bins[:-1],bins_c*abs(histo_sims[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-    plt.yscale("log")
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$|N^{s}_{k}-N^{o}_{k}| \cdot u^{o}_{k}$')
-    plt.xlim([0,22])
-    #plt.legend()
-    plt.text(.25, 1.,"biased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_biased_abs-log",dpi=dpi)
-    plt.close()
-
-    plt.figure(dpi=dpi)
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-    for key in gem_int_per_station.keys():
-        err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
-        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-    plt.yscale("log")
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel('relative error (%)')
-    plt.yscale("log")
-    plt.xlim([0,22])
-    #plt.legend()
-    plt.text(.25, 1.,"biased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_biased_abs-log-rel")
-    plt.close()
 
     plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
