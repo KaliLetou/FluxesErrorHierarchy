@@ -35,7 +35,7 @@ class constants:
                'SW_IN':np.arange(0,1200.0,100.),'SW_OUT':np.arange(0,400.0,40.),'LW_IN':np.arange(100,600,50.), 'LW_OUT':np.arange(100,600.,50.),'G':np.arange(-100,100.,20.), 'ZL':np.arange(0,1.0,.04),'PA':np.arange(0,1.0,.04),'RH':np.arange(0,1.0,.04),'TS':np.arange(-15.,45.,5.),'TA':np.arange(-15.,45.,5.),'VPD':np.arange(0,1.0,.04)}
   data_names={'AMF':'AmeriFlux','GEM':'CRCM6/GEM5'}
   term_names={'int':r'$\overline{u}$','freq':r'$p$','tot':r'$p \overline{u}$'}
-  term_error_names={'int':r'$N^{o} \cdot \Delta \overline{u}$','freq':r'$\overline{u^{o}} \cdot \Delta N$','tot':r'$\Delta (N \cdot \overline{u})$','residual':r'$\Delta \overline{u} \cdot \Delta N$'}
+  term_error_names={'int':r'$p^{o} \cdot \Delta \overline{u}$','freq':r'$\overline{u^{o}} \cdot \Delta p$','tot':r'$\Delta (p \cdot \overline{u})$','residual':r'$\Delta \overline{u} \cdot \Delta p$'}
   sea_months={'ANN':[1,2,3,4,5,6,7,8,9,10,11,12],'DJF':[12,1,2],'MAM':[3,4,5],'JJA':[6,7,8],'SON':[9,10,11]}
 
 def get_mask(array,mask=None):
