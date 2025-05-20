@@ -1,9 +1,4 @@
 numpy
-os
-pickle
 matplotlib
-glob
 tqdm
-datetime
 xarray
-warnings
