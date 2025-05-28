@@ -9,12 +9,12 @@ import utils
 import os
 import pickle
 
-# THIS WILL GENEREATE ABOUT 3GB OF DATA!
+# THIS WILL GENERATE ABOUT 3GB OF DATA!
 
 p = config.params()
 
 reference_date = utils.constants.reference_date
-i_date         = p.i_date #dt.datetime(2015,1,1)                                                                                                                              
+i_date         = p.i_date # dt.datetime(2015,1,1)                                                                                                                              
 f_date         = p.f_date # dt.datetime(2020,12,31)                                                                                                                           
 period         = [i_date, f_date]
 variables_dic=p.variables_dic
@@ -54,16 +54,16 @@ dic_z0={}
 print('Read z0 from simulations')
 for sim in simulations:
     with open(path_z0+sim+'_mean_z0_pickle','rb') as s:
-        temp=pickle.load(s)
+        temp=pickle.load(s) # z0 for each station
         #print(temp.keys())
         #print(len(temp))
         z0_t=[]
         for st in stations:
             #print(st)
             z0_t.append(temp[st])
-    dic_z0[sim]=np.asarray(z0_t)
+    dic_z0[sim]=np.asarray(z0_t) # dictionary with z0 for each station
 
-AMF_stats_z0=np.load(path_stats+'/stats-z0.npy')
+AMF_stats_z0=np.load(path_stats+'/stats-z0.npy') # statistics z0
 
 for z0 in z0s:
     indices=np.argsort(AMF_stats_z0)
@@ -79,12 +79,12 @@ for z0 in z0s:
     if z0=='hig':
         indtemp1=indices[19:]
         addout=z0
-    if z0=='p01-p1':
+    if z0=='p01-p1': # 0.01 < z0 < 0.1
         indtemp1=((AMF_stats_z0>0.01) & (AMF_stats_z0<0.1))
         addout=z0
 
     for source in sources:
-        if source[:3]=='AMF':
+        if source[:3]=='AMF': # Ameriflux data
             simulations_tmp=['']
         else:
             simulations_tmp=simulations
@@ -113,7 +113,7 @@ for z0 in z0s:
                         station=path.split("_")[3]+"_"+path.split("_")[4]
                         dates_stat = np.load(path_dates+f"AMF_dates_{station}_2015-2020_WS-USTAR-ZL-TA-H-LE-PA-RH_1.npy")
                     else:
-                         dates_stat = np.load(path.replace('data','dates'))
+                        dates_stat = np.load(path.replace('data','dates'))
                 else:
                     station=path.split("_")[2]+"_"+path.split("_")[3]
                     dates_stat = np.load(path_dates+f"AMF_dates_{station}_2015-2020_WS-USTAR-ZL-TA-H-LE-PA-RH_1.npy") #np.load(path.replace('_data_','_dates_')) Use amf dates
@@ -146,7 +146,7 @@ for z0 in z0s:
                 np.save(path_out+source+'_hours_'+sim+'_'+reg+'_z0'+addout,hour)
                 np.save(path_out+source+'_mins_'+sim+'_'+reg+'_z0'+addout,mins)
 
-                #Seasonal cycle
+                # Seasonal cycle
                 m_mean=[]
                 for mm in np.arange(1,13):
                     indices=mm==month
@@ -181,5 +181,3 @@ for z0 in z0s:
                     print('Number of data: ',m_indices.sum())
 
 np.save(path_out+'station_data-number'+'_z0'+addout,stat_data)
-
-
