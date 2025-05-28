@@ -1,4 +1,4 @@
-# WindErrorHierarchy
+# FluxesErrorHierarchy
 
 ## Overview
 This project evaluates the performance of various configurations of the Canadian Regional Climate Model (CRCM6/GEM5) in simulating 10-meter wind speeds using data from AmeriFlux stations across North America. The study employs a hierarchy of error metrics and highlights the challenges in simulating near-surface wind speeds.
