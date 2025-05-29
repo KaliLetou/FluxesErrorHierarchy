@@ -15,12 +15,10 @@ import warnings
 import copy as cp
 import sys
 import pdb
-
-warnings.filterwarnings("ignore") # Ignore annoying matplotlib warnings
-
+import copy
 
 def main():
-    # Setup con
+    # Setup configuration and simulation parameters
     p = config.params()
     simulation_names = p.simulations  
     variables_dic  = p.variables_dic
@@ -34,7 +32,7 @@ def main():
             str_vars = variable
         else:
             str_vars = str_vars + '-' + variable
-    
+
     # Setup paths
     path_in_r = p.path_data # Raw data
     path_in = p.path_amf_corrected # This is AMF_corrected
@@ -77,7 +75,7 @@ def main():
                 z0_t.append(temp[st])
         dic_z0[sim]=np.asarray(z0_t)
 
-    
+
     # Compute regime error
     months={}
     hours={}
@@ -172,11 +170,11 @@ def main():
                 
                 for term in ['int','freq','tot'] :
                     if term=='int':
-                        cmap = plt.get_cmap('viridis')
+                        cmap = copy.copy(plt.get_cmap('viridis'))
                     else:
-                        cmap = plt.get_cmap('cubehelix_r')
+                        cmap = copy.copy(plt.get_cmap('cubehelix_r'))
                     if term=='tot':
-                        cmap = plt.get_cmap('cool')
+                        cmap = copy.copy(plt.get_cmap('cool'))
                     cmap.set_bad( "gray", alpha=0 )
                     if term=='int':
                         Z=int_bin_a.T
@@ -217,7 +215,12 @@ def main():
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
                     for m in range(5):
                         for h in range(5):
-                            plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
+                            val = Z[h, m]
+                            if np.ma.is_masked(val):
+                                val = "--"
+                            else:
+                                val = f"{val:.2f}"
+                            plt.text(m+0.5, h+0.5, val, ha='center', va='center', color='black',fontsize=11)
                     cbar = plt.colorbar(extend='max')
                     if term in ['int','tot'] :
                         cbar.set_label(term_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
@@ -235,7 +238,7 @@ def main():
                     Zmax=100
                     levels = MaxNLocator(nbins=11, symmetric=True).tick_values(-1*Zmax, Zmax)
                     levels = levels[levels != 0]
-                    cmap   = plt.get_cmap('PiYG')
+                    cmap   = copy.copy(plt.get_cmap('PiYG'))
                     norm   = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
                     cmap.set_bad( "gray", alpha=0 )
                     plt.title(term_error_names[term] + r' ($\epsilon_{percent}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
@@ -259,7 +262,7 @@ def main():
                         #Z_v = np.sum(abs(var_errors[1:,:,:]),axis=0).T
                         Zmax=0.5
                         levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
-                        cmap   = plt.get_cmap('cool')
+                        cmap   = copy.copy(plt.get_cmap('cool'))
                         norm=colors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
                         cmap.set_bad( "gray", alpha=0 )
                         plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
@@ -286,7 +289,7 @@ def main():
                     Zmax=.3
                     levels = MaxNLocator(nbins=11, symmetric=True).tick_values(-1*Zmax, Zmax)
                     levels = levels[levels != 0]
-                    cmap   = plt.get_cmap('PiYG')
+                    cmap   = copy.copy(plt.get_cmap('PiYG'))
                     norm   = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
                     cmap.set_bad( "gray", alpha=0 )
                     plt.title(term_error_names[term] + r' ($\epsilon_{abs}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
@@ -309,7 +312,7 @@ def main():
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
                         Zmax=.5
                         levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
-                        cmap   = plt.get_cmap('cool')
+                        cmap   = copy.copy(plt.get_cmap('cool'))
                         norm=colors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
                         cmap.set_bad( "gray", alpha=0 )
                         plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
@@ -536,7 +539,7 @@ def main():
     histo_sims_unbiased={}
     for c_key,key in enumerate(gem_int_per_station.keys()):
         ###############################################
-        # Mean and distrubtion plotting.
+        # Mean and distribution plotting.
         ###############################################
         # need to flatten
         amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
@@ -568,7 +571,7 @@ def main():
         #plt.legend(loc='best')
         plt.xscale("log")
         plt.yscale("log")
-        plt.xlim([0,22])
+        plt.xlim([1e-2,22]) # lower limit must be >0 (log(0) undefined)
         plt.savefig(path_out+p.sim_name[key]+"_dist",dpi=dpi)
         plt.close()
 
@@ -668,7 +671,7 @@ def main():
     plt.plot([0,25],[0,0],color='grey',linewidth=.75)
     for key in diu_error:
         plt.plot(np.arange(1,25),diu_error[key], label=p.sim_name[key], color=p.sim_color[key])
-        print(np.mean(diu_error[key]))
+        # print(np.mean(diu_error[key]))
     plt.xlabel('Local Hour')
     plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
     plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['WS']+')')
@@ -745,7 +748,10 @@ def main():
      
     plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
-        err=(histo_sims_unbiased[key]-histo_amf_unbiased)/(histo_amf_unbiased+histo_sims_unbiased[key])
+        denom = histo_amf_unbiased + histo_sims_unbiased[key]
+        with np.errstate(divide='ignore', invalid='ignore'):
+            err = (histo_sims_unbiased[key] - histo_amf_unbiased) / denom
+            err = np.where(denom == 0, np.nan, err)  # Set result to NaN where denominator is zero
         plt.step(bins2[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
     plt.ylabel('relative error (%)')
@@ -778,8 +784,10 @@ def main():
 
     plt.figure(dpi=dpi)
     for key in gem_int_per_station.keys():
-        err=abs(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
-        err=(histo_sims[key]-histo_amf)/(histo_amf+histo_sims[key])
+        denom = histo_amf + histo_sims[key]
+        with np.errstate(divide='ignore', invalid='ignore'):
+            err = (histo_sims[key] - histo_amf) / denom
+            err = np.where(denom == 0, np.nan, err)  # Set result to NaN where denominator is zero
         plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
     #plt.yscale("log")
     plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
