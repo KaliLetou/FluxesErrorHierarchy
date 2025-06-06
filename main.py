@@ -5,6 +5,7 @@ import os
 import pickle
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
+import matplotlib.colors as mcolors
 from matplotlib.ticker import MaxNLocator
 import matplotlib.colors as colors
 import glob
@@ -39,26 +40,46 @@ def main():
     path_stats = p.path_stats
     path_z0 = p.path_z0
     path_dates = p.path_dates
-    path_out=p.path_out
+    path_out = p.path_out
+
+    # Make output directories if they do not exist
     os.system('mkdir -p ' + path_out)
+    os.system('mkdir -p ' + path_out + 'binning_mean_AMF/')
+    os.system('mkdir -p ' + path_out + 'binning_mean_perc_error/')
+    os.system('mkdir -p ' + path_out + 'binning_mean_perc_reg/')
+    os.system('mkdir -p ' + path_out + 'binning_mean_error/')
+    os.system('mkdir -p ' + path_out + 'binning_mean_reg-error/')
+    os.system('mkdir -p ' + path_out + 'distribution/')
+    os.system('mkdir -p ' + path_out + 'error_diu_ann/')
+    os.system('mkdir -p ' + path_out + 'ann_error/')
+    os.system('mkdir -p ' + path_out + 'diu_error/')
+    os.system('mkdir -p ' + path_out + 'distribution_errors/')
+    os.system('mkdir -p ' + path_out + 'combined_errors/')
+    os.system('mkdir -p ' + path_out + 'combined_ann_diu_errors/')
 
     vars_ind={}
     for ivar,var in enumerate(variables):
         vars_ind[var]=ivar
     stations=np.load(path_stats+'stats-selected.npy')
-    
-    term_names=utils.constants.term_names
-    term_error_names=utils.constants.term_error_names
 
-    # Plotting params
     sim_name=p.sim_name
     sources=['AMFc-BEL_withz0','GEM']
-    dpi=300
-    lw=5
-    plt.rcParams.update({'font.size':19})
-    plt.rcParams.update({'legend.fontsize':15})
-    plt.rcParams['figure.constrained_layout.use'] = True
-    
+
+    # Set up default plotting parameters
+    MPL_DEFAULT_PARAMS = {
+        'font.size': 19,
+        # 'figure.figsize': (10, 8),
+        # 'axes.titlesize': 20,
+        # 'axes.labelsize': 18,
+        # 'xtick.labelsize': 16,
+        # 'ytick.labelsize': 16,
+        'legend.fontsize': 15,
+        'lines.linewidth': 2.5,
+        'figure.dpi': 300,
+        'figure.constrained_layout.use': True,
+    }
+    plt.rcParams.update(MPL_DEFAULT_PARAMS)
+
     term_names=utils.constants.term_names
     term_error_names=utils.constants.term_error_names
     regimes=p.regimes
@@ -84,11 +105,14 @@ def main():
     m_mean={}
     h_mean={}
     z0='all'
-    biased=['biased','unbiased']
+    flux_names=['LE','H']
 
-    for bb in biased:
-        print(bb," case")
-        add=bb
+    ##########################################
+    # Load data for each simulation and regime
+    ##########################################
+    for var_flux in flux_names:
+        print(var_flux," case")
+        add=var_flux
         addout=''
         if z0!='all':
             addout=z0
@@ -121,15 +145,17 @@ def main():
                 cond= (all_dat_t>=bins[c_per]) & (all_dat_t<bins[c_per+1])
                 #print('# events between '+str(bins[c_per])+' and '+str(bins[c_per+1])+': '+str(np.sum(cond)))
             bins_all[var]=np.asarray(bins)
-            
+
+        # Bins for the stability: Neutral when lower than 0.02 and extreme when higher than 0.4
         bins_all['ZL'][1]=-.4
         bins_all['ZL'][2]=-.02
         bins_all['ZL'][3]=.02
         bins_all['ZL'][4]=.4
-        
-        variables_plot = ['WS','ZL','USTAR']
+
+        # for flux in ['H', 'LE']:
+        variables_plot = [var_flux,'ZL','USTAR'] # ['WS','ZL','USTAR','TA','H','LE','PA','RH']
         reg='all'
-        add=z0+'_'+bb
+        add=z0+'_'+var_flux
         var_indices_plot={}
         add_met=[]
         for source in tqdm(sources[1:]):
@@ -149,10 +175,7 @@ def main():
 
                 var_amf = np.asarray(var_amf)
                 var_gem = np.asarray(var_gem)
-                if bb=='unbiased':
-                    var_amf[var_indices_plot['WS'],:]=var_amf[var_indices_plot['WS'],:]-np.mean(var_amf[var_indices_plot['WS'],:])
-                    var_gem[var_indices_plot['WS'],:]=var_gem[var_indices_plot['WS'],:]-np.mean(var_gem[var_indices_plot['WS'],:])
-            
+
                 freq_bin,int_bin,max_bin,max5_bin,std_bin,per_bin=utils.calculate_binning_mean(var_gem,bins_all,variables_plot,percentiles,prob=True)
                 freq_bin_a,int_bin_a,max_bin,max5_bin,std_bin,per_bin=utils.calculate_binning_mean(var_amf,bins_all,variables_plot,percentiles,prob=True)
                 #print(int_bin_a)
@@ -167,7 +190,7 @@ def main():
                 factor          = 1
                 var_errors      = var_errors/factor
                 var_perc_errors      = var_perc_errors/factor
-                
+
                 for term in ['int','freq','tot'] :
                     if term=='int':
                         cmap = copy.copy(plt.get_cmap('viridis'))
@@ -178,33 +201,29 @@ def main():
                     cmap.set_bad( "gray", alpha=0 )
                     if term=='int':
                         Z=int_bin_a.T
-                        tt=8.
-                        levels = MaxNLocator(nbins=11).tick_values(0,tt)
+                        tt=Z.max()
+                        bb=Z.min()
+                        levels = MaxNLocator(nbins=11).tick_values(bb,tt)
                         norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-                        plt.title('AMF (' + str(np.round(np.ma.mean(Z),1)) +' '+ varunit_dic[variables_plot[0]] + ')')
                     if term=='freq':
                         Z=freq_bin_a.T
                         norm=colors.LogNorm(vmin=0.0005, vmax=.5, clip=True)
-                        plt.title('AMF (' + str(int(np.sum(Z))) +')')
                     if term=='tot':
                         Z=int_bin_a.T*freq_bin_a.T
                         tt=Z.max()
-                        levels = MaxNLocator(nbins=11).tick_values(0,tt)
-                        norm=colors.LogNorm(vmin=0.00001, vmax=.5, clip=True)
-                        plt.title('AMF (' + str(np.round(np.ma.mean(Z),1)) +' '+ varunit_dic[variables_plot[0]] + ')')
-                    #print(Z)
-                    
-                    plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
-                    plt.xlabel('Stability [-]')
-                    plt.title('')
+                        bb=Z.min()
+                        levels = MaxNLocator(nbins=11).tick_values(bb,tt)
+                        norm=mcolors.SymLogNorm(linthresh=1, linscale=1, base=10, clip=True)
+
+                    plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
+                    plt.xlabel('Stability') # variable_plot[1] is stability
                     labelsx = []
                     aa = bins_all[variables_plot[1]]
                     for ii in np.arange(aa.shape[0]-1) :
                         aa1=str("{:.0e}".format(aa[ii]))
                         aa2=str("{:.0e}".format(aa[ii+1]))
                         labelsx.append('[' + aa1 + ',' + aa2+ ')')
-                    labelsx=['very unstable','unstable','neutral','stable','very stable']
-                    labelsx=['VU','U','N','S','VS']
+                    labelsx=['VU','U','N','S','VS'] # ['very unstable','unstable','neutral','stable','very stable']
                     labelsy = []
                     aa = bins_all[variables_plot[2]]
                     for ii in np.arange(aa.shape[0]-1):
@@ -222,14 +241,16 @@ def main():
                                 val = f"{val:.2f}"
                             plt.text(m+0.5, h+0.5, val, ha='center', va='center', color='black',fontsize=11)
                     cbar = plt.colorbar(extend='max')
-                    if term in ['int','tot'] :
-                        cbar.set_label(term_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
-                    else :
+                    if term == 'int':
+                        cbar.set_label(rf'$\overline{{{var_flux}}}$' + ' (' + varunit_dic[variables_plot[0]] + ')')
+                    elif term == 'tot' :
+                        cbar.set_label(rf'$p \overline{{{var_flux}}}$' + ' (' + varunit_dic[variables_plot[0]] + ')')
+                    elif term == 'freq':
                         cbar.set_label(term_names[term] + ' ' )
-                    fig_name = path_out+'binning_mean_AMF_'+term+'_'+add+'.png'
-                    plt.savefig(fig_name, bbox_inches='tight')
+                    fig_name = path_out+'binning_mean_AMF/'+'binning_mean_AMF_'+term+'_'+add+'.png'
+                    plt.savefig(fig_name, bbox_inches='tight') # binning mean AMF
                     plt.close()
-                
+                ####################################
                 for c_term,term in enumerate(terms):
                     Z = var_perc_errors[c_term,:].T*100
                     Z_v = var_errors[c_term,:].T
@@ -240,34 +261,38 @@ def main():
                     levels = levels[levels != 0]
                     cmap   = copy.copy(plt.get_cmap('PiYG'))
                     norm   = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-                    cmap.set_bad( "gray", alpha=0 )
-                    plt.title(term_error_names[term] + r' ($\epsilon_{percent}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
-                    plt.title(sim_name[sim])
-                    plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
+                    cmap.set_bad("gray", alpha=0)
+                    plt.title(sim_name[sim] + ' - ' + var_flux)
+                    plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
                     plt.xticks(np.arange(len(labelsx))+.5, labelsx)
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                     for m in range(5):
                         for h in range(5):
                             plt.text(m+0.5,h+0.5,f'{Z_v[h, m]:.3f}', ha='center', va='center', color='black',fontsize=11)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
-                    #plt.legend()
                     cbar = plt.colorbar(extend='both')
-                    cbar.set_label(term_error_names[term] + ' [' + varunit_dic[variables_plot[0]] + '] (%)')
-                    fig_name = path_out+ 'binning_mean_perc_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                    if term == 'int':
+                        cbar.set_label(rf'$p^{{o}} \cdot \Delta \overline{{{var_flux}}}$' + ') (%)')
+                    elif term == 'tot' :
+                        cbar.set_label(rf'$\Delta (p \cdot \overline{{{var_flux}}})$' + ') (%)')
+                    elif term == 'freq':
+                        cbar.set_label(rf'$\overline{{{var_flux}^{{o}}}} \cdot \Delta p$' + ' (' + varunit_dic[variables_plot[0]] + ') (%)')
+                    elif term == 'residual':
+                        cbar.set_label(rf'$\Delta \overline{{{var_flux}}} \cdot \Delta p$' + ' (' + varunit_dic[variables_plot[0]] + ') (%)')
+                    fig_name = path_out + 'binning_mean_perc_error/' + 'binning_mean_perc_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                     plt.savefig(fig_name, bbox_inches='tight')
-                    
+
                     plt.close()
                     if term == 'tot' :
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
                         #Z_v = np.sum(abs(var_errors[1:,:,:]),axis=0).T
-                        Zmax=0.5
+                        Zmax=100
                         levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
                         cmap   = copy.copy(plt.get_cmap('cool'))
                         norm=colors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
                         cmap.set_bad( "gray", alpha=0 )
-                        plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
-                        plt.title(sim_name[sim])
-                        plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
+                        plt.title(sim_name[sim] + ' - ' + var_flux)
+                        plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
                         plt.xticks(np.arange(len(labelsx))+.5, labelsx)
                         plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
@@ -276,37 +301,42 @@ def main():
                                 plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                         #plt.legend()
                         cbar = plt.colorbar(extend='max')
-                        cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
-                        fig_name = path_out+ 'binning_mean_perc_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                        cbar.set_label(r'$\epsilon_{reg}$'+ ' (' + varunit_dic[variables_plot[0]] + ')')
+                        fig_name = path_out + 'binning_mean_perc_reg/' + 'binning_mean_perc_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                         plt.savefig(fig_name, bbox_inches='tight')
                         plt.close()
 
-                    
+
                 for c_term,term in enumerate(terms):
                     Z = var_errors[c_term,:].T
                     if term == 'tot' :
                         Zmax = np.ceil(np.abs(Z).max())
                     Zmax=.3
-                    levels = MaxNLocator(nbins=11, symmetric=True).tick_values(-1*Zmax, Zmax)
+                    levels = MaxNLocator(nbins=11, symmetric=True).tick_values(-Zmax, Zmax)
                     levels = levels[levels != 0]
                     cmap   = copy.copy(plt.get_cmap('PiYG'))
                     norm   = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
                     cmap.set_bad( "gray", alpha=0 )
-                    plt.title(term_error_names[term] + r' ($\epsilon_{abs}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
                     plt.title(sim_name[sim])
-                    plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
+                    plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
                     plt.xticks(np.arange(len(labelsx))+.5, labelsx)
                     plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                     for m in range(5):
                         for h in range(5):
                             plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                     plt.pcolormesh(Z, cmap=cmap, norm=norm)
-                    #plt.legend()
                     cbar = plt.colorbar(extend='both')
-                    cbar.set_label(term_error_names[term] + ' [' + varunit_dic[variables_plot[0]] + ']')
-                    fig_name = path_out+ 'binning_mean_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                    if term == 'int':
+                        cbar.set_label(rf'$p^{{o}} \cdot \Delta \overline{{{var_flux}}}$')
+                    elif term == 'tot' :
+                        cbar.set_label(rf'$\Delta (p \cdot \overline{{{var_flux}}})$')
+                    elif term == 'freq':
+                        cbar.set_label(rf'$\overline{{{var_flux}^{{o}}}} \cdot \Delta p$' + ' (' + varunit_dic[variables_plot[0]] + ')')
+                    elif term == 'residual':
+                        cbar.set_label(rf'$\Delta \overline{{{var_flux}}} \cdot \Delta p$' + ' (' + varunit_dic[variables_plot[0]] + ')')
+                    fig_name = path_out+'binning_mean_error/'+ 'binning_mean_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                     plt.savefig(fig_name, bbox_inches='tight')
-                    
+
                     plt.close()
                     if term == 'tot' :
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
@@ -317,7 +347,7 @@ def main():
                         cmap.set_bad( "gray", alpha=0 )
                         plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
                         plt.title(sim_name[sim])
-                        plt.ylabel(varname_dic[variables_plot[2]] + ' [' + varunit_dic[variables_plot[2]] + ']')
+                        plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
                         plt.xticks(np.arange(len(labelsx))+.5, labelsx)
                         plt.yticks(np.arange(len(labelsy))+.5, labelsy)
                         plt.pcolormesh(Z, cmap=cmap, norm=norm)
@@ -326,37 +356,43 @@ def main():
                                 plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
                         #plt.legend()
                         cbar = plt.colorbar(extend='max')
-                        cbar.set_label(r'$\epsilon_{reg}$'+ ' [' + varunit_dic[variables_plot[0]] + ']')
-                        fig_name = path_out+ 'binning_mean_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                        cbar.set_label(r'$\epsilon_{reg}$'+ ' (' + varunit_dic[variables_plot[0]] + ')')
+                        fig_name = path_out+'binning_mean_reg-error/'+'binning_mean_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                         plt.savefig(fig_name, bbox_inches='tight')
                         plt.close()
                         add_met.append(np.mean(Z))
 
-        np.save('add_reg_'+bb+'.npy',add_met) 
+        np.save('add_reg_'+var_flux+'.npy',add_met)
 
-    # Computing the mean, diurnal, and annual cycle errors
+    ######################################################
+    # AMF data processing (Computing the mean, diurnal, and annual cycle errors)
+    ######################################################
     # Get amf paths
     amf_data_path = glob.glob(path_in_r+"/AMFc-BEL_withz0_data_*.npy")
     amf_date_path = glob.glob(path_dates+"/AMF_dates_*.npy")
-
 
     # Sort paths
     amf_data_path.sort()
     amf_date_path.sort()
     N = len(amf_data_path)
 
-    gem_ws = {} # Store u to compute mean and show dist.
-    gem_int_per_station = {} # to store u_{h,m} intensity
-    gem_freq_per_station = {} # to store u_{h,m} freq
-    gem_diu_per_station = {} # to store u_{h} 
-    gem_ann_per_station = {} # to store u_{m} 
+    gem_flux = {} # Store LE and H to compute mean and show distribution
+    gem_int_per_station = {} # to store LE_{h,m} and H_{h,m} intensity
+    gem_freq_per_station = {} # to store LE_{h,m} and H_{h,m} freq
+    gem_diu_per_station = {} # to store LE_{h} and H_{h} diurnal cycle
+    gem_ann_per_station = {} # to store LE_{m} and H_{m} annual cycle
 
     for sim in tqdm(simulation_names, desc='Computing errors', unit='simulation'):
-        amf_ws = []
-        amf_int_per_station = []
-        amf_freq_per_station = []
-        amf_diu_per_station = []
-        amf_ann_per_station = []
+        amf_le = []
+        amf_int_per_station_le = []
+        amf_freq_per_station_le = []
+        amf_diu_per_station_le = []
+        amf_ann_per_station_le = []
+        amf_hflux = [] # named hflux to avoid confusion with hours
+        amf_int_per_station_hflux = []
+        amf_freq_per_station_hflux = []
+        amf_diu_per_station_hflux = []
+        amf_ann_per_station_hflux = []
         counter=0
         for date_p,data_p in zip(amf_date_path, amf_data_path):
             # Load data
@@ -365,12 +401,12 @@ def main():
 
             # Switch paths to gem
             data_p_gem = data_p.replace("AMFc-BEL_withz0_data","GEM_data").replace("1.npy",sim+"_1.npy")
-            #date_p_gem = date_p.replace("AMF_dates","GEM_dates").replace("1.npy",sim+"_1.npy")
+            #date_p_gem = date_p.replace("AMF_dates","GEM_dates").replace("1.npy",sim+"_1.npy") # TODO: Delete?
             data_gem = np.load(data_p_gem)
             dates_gem =  dates #np.load(date_p_gem) # Use AMF dates
 
             # Correct dates
-            reference_date=datetime(1971,1,1)
+            reference_date=datetime(1971,1,1) # This is the reference date used in the GEM model
             corrected_dates = []
             corrected_dates_gem = []
 
@@ -382,24 +418,34 @@ def main():
                 corrected_dates.append(reference_date + timestamp_delta)
                 corrected_dates_gem.append(reference_date + timestamp_delta_gem)
 
-            WS = data[:,0]
-            WS_gem = data_gem[:,0]
+            HFLUX = data[:,4]
+            LE = data[:,5]
+            HFLUX_gem = data_gem[:,4]
+            LE_gem = data_gem[:,5]
 
-            # Save windspeeds
-            amf_ws.append(WS)
-            if sim in gem_ws:
-                gem_ws[sim].append(WS_gem)
+            # Save fluxes
+            amf_hflux.append(HFLUX)
+            amf_le.append(LE)
+            if sim in gem_flux:
+                gem_flux[sim]['LE'].append(LE_gem)
+                gem_flux[sim]['H'].append(HFLUX_gem)
             else:
-                gem_ws[sim] = [WS_gem]
-                
+                gem_flux[sim] = {'LE': [LE_gem], 'H': [HFLUX_gem]}
+
             # Make dataframes to make quick diurnal and yearly cycles
-            ds = xr.Dataset({
-                'WS': (('time',), WS),
+            ds_le = xr.Dataset({
+                'LE': (('time',), LE),
+                }, coords={'time': corrected_dates})
+            ds_hflux = xr.Dataset({
+                'H': (('time',), HFLUX),
                 }, coords={'time': corrected_dates})
 
 
-            ds_gem = xr.Dataset({
-                    'WS': (('time',), WS_gem),
+            ds_gem_le = xr.Dataset({
+                    'LE': (('time',), LE_gem),
+                    }, coords={'time': corrected_dates_gem})
+            ds_gem_hflux= xr.Dataset({
+                    'H': (('time',), HFLUX_gem),
                     }, coords={'time': corrected_dates_gem})
 
 
@@ -421,120 +467,198 @@ def main():
             month_objects_gem = np.array([np.datetime64(f'1970-{month:02d}-01') for month in months_gem])
 
             # Create var_comp array with wind speed as the first variable, hour_objects as the second variable, and month_objects as the third variable
-            var_comp = np.array([WS, hour_objects, month_objects])
-            var_comp_gem = np.array([WS_gem, hour_objects_gem, month_objects_gem])
+            var_comp_le = np.array([LE, hour_objects, month_objects])
+            var_comp_hflux = np.array([HFLUX, hour_objects, month_objects])
+            var_comp_gem_le = np.array([LE_gem, hour_objects_gem, month_objects_gem])
+            var_comp_gem_hflux = np.array([HFLUX_gem, hour_objects_gem, month_objects_gem])
 
             # Define bins for hours and months (assuming bins_all is a dictionary)
-            bins_all = {'hours': np.arange(0, 25), 'months': np.arange(1, 14)}  
-            
+            bins_all = {'hours': np.arange(0, 25), 'months': np.arange(1, 14)} # TODO: Verify if this is correct
+
             # Define variables (assuming wind speed is the independent variable)
-            variables = ['wind_speed', 'hours', 'months']
+            variables = ['fluxes', 'hours', 'months'] # The first variable is not used in the function calculate_binning_mean_time
 
             # Define percentiles. Don't really need this
             percentiles = [25, 50, 75]
 
             # Call calculate_binning_mean function
-            freq_bin, int_bin, _,_,_,_ = utils.calculate_binning_mean_time(var_comp, bins_all, variables, percentiles)
-            freq_bin_gem, int_bin_gem,_,_,_,_ = utils.calculate_binning_mean_time(var_comp_gem, bins_all, variables, percentiles)
-            
-            amf_int_per_station.append(int_bin)
-            amf_freq_per_station.append(freq_bin)
-            
+            freq_bin_le, int_bin_le, _,_,_,_ = utils.calculate_binning_mean_time(var_comp_le, bins_all, variables, percentiles)
+            freq_bin_hflux, int_bin_hflux, _,_,_,_ = utils.calculate_binning_mean_time(var_comp_hflux, bins_all, variables, percentiles)
+            freq_bin_gem_le, int_bin_gem_le,_,_,_,_ = utils.calculate_binning_mean_time(var_comp_gem_le, bins_all, variables, percentiles)
+            freq_bin_gem_hflux, int_bin_gem_hflux,_,_,_,_ = utils.calculate_binning_mean_time(var_comp_gem_hflux, bins_all, variables, percentiles)
+
+            amf_int_per_station_le.append(int_bin_le)
+            amf_int_per_station_hflux.append(int_bin_hflux)
+            amf_freq_per_station_le.append(freq_bin_le)
+            amf_freq_per_station_hflux.append(freq_bin_hflux)
+
             if counter==0:
-                amf_diu_per_station=ds.groupby("time.hour").mean()
-                amf_ann_per_station=ds.groupby("time.month").mean()
+                amf_diu_per_station_le=ds_le.groupby("time.hour").mean()
+                amf_ann_per_station_le=ds_le.groupby("time.month").mean()
+
+                amf_diu_per_station_hflux=ds_hflux.groupby("time.hour").mean()
+                amf_ann_per_station_hflux=ds_hflux.groupby("time.month").mean()
                 counter+=1
             else:
-                amf_diu_per_station+=ds.groupby("time.hour").mean()
-                amf_ann_per_station+=ds.groupby("time.month").mean()
+                amf_diu_per_station_le+=ds_le.groupby("time.hour").mean()
+                amf_ann_per_station_le+=ds_le.groupby("time.month").mean()
+
+                amf_diu_per_station_hflux+=ds_hflux.groupby("time.hour").mean()
+                amf_ann_per_station_hflux+=ds_hflux.groupby("time.month").mean()
 
             if sim in gem_int_per_station:
-                gem_int_per_station[sim].append(int_bin_gem)
-                gem_freq_per_station[sim].append(freq_bin_gem)
-                gem_diu_per_station[sim] += ds_gem.groupby("time.hour").mean()
-                gem_ann_per_station[sim] += ds_gem.groupby("time.month").mean()
+                gem_int_per_station[sim]['LE'].append(int_bin_gem_le)
+                gem_freq_per_station[sim]['LE'].append(freq_bin_gem_le)
+                gem_diu_per_station[sim]['LE'] += ds_gem_le.groupby("time.hour").mean()
+                gem_ann_per_station[sim]['LE'] += ds_gem_le.groupby("time.month").mean()
+
+                gem_int_per_station[sim]['H'].append(int_bin_gem_hflux)
+                gem_freq_per_station[sim]['H'].append(freq_bin_gem_hflux)
+                gem_diu_per_station[sim]['H'] += ds_gem_hflux.groupby("time.hour").mean()
+                gem_ann_per_station[sim]['H'] += ds_gem_hflux.groupby("time.month").mean()
             else:
-                gem_int_per_station[sim] = [int_bin_gem]
-                gem_freq_per_station[sim] = [freq_bin_gem]
-                gem_diu_per_station[sim] = ds_gem.groupby("time.hour").mean()
-                gem_ann_per_station[sim] = ds_gem.groupby("time.month").mean()
-        
+                gem_int_per_station[sim] = {}
+                gem_freq_per_station[sim] = {}
+                gem_diu_per_station[sim] = {}
+                gem_ann_per_station[sim] = {}
+
+                gem_int_per_station[sim]['LE'] = [int_bin_gem_le]
+                gem_freq_per_station[sim]['LE'] = [freq_bin_gem_le]
+                gem_diu_per_station[sim]['LE'] = ds_gem_le.groupby("time.hour").mean()
+                gem_ann_per_station[sim]['LE'] = ds_gem_le.groupby("time.month").mean()
+
+                gem_int_per_station[sim]['H'] = [int_bin_gem_hflux]
+                gem_freq_per_station[sim]['H'] = [freq_bin_gem_hflux]
+                gem_diu_per_station[sim]['H'] = ds_gem_hflux.groupby("time.hour").mean()
+                gem_ann_per_station[sim]['H'] = ds_gem_hflux.groupby("time.month").mean()
 
 
     # Compute Errors and make figures
     print("Saving Figures")
-    aa=np.concatenate([arr.flatten() for arr in amf_ws])
-    XY=float(aa.shape[0])
-    X=float(len(amf_ws))
-    Y=XY/X
+    aa_le=np.concatenate([arr.flatten() for arr in amf_le])
+    XY_le=float(aa_le.shape[0])
+    X_le=float(len(amf_le))
+    Y_le=XY_le/X_le
+    aa_hflux=np.concatenate([arr.flatten() for arr in amf_hflux])
+    XY_hflux=float(aa_hflux.shape[0])
+    X_hflux=float(len(amf_hflux))
+    Y_hflux=XY_hflux/X_hflux
 
     month_names=['J','F','M','A','M','J','J','A','S','O','N','D']
     hour_names=np.arange(1,25)
 
-    # Diurnal cycle AMF
-    diu_amf = amf_diu_per_station['WS']/len(amf_freq_per_station)
+    # -----------------------------------------------
+    # Diurnal cycle AMF averaged across all stations
+    # -----------------------------------------------
+    diu_amf_le = amf_diu_per_station_le['LE']/len(amf_freq_per_station_le) #TODO: Check maybe just one diu per station
+    diu_amf_hflux = amf_diu_per_station_hflux['H']/len(amf_freq_per_station_hflux) #TODO: Check
     plt.figure()
-    plt.plot(hour_names,diu_amf,color='k',label='AMF')
+    plt.plot(hour_names,diu_amf_le,color='b',label='LE')
+    plt.plot(hour_names,diu_amf_hflux,color='r',label='H')
     # Set labels and title                                                                                                                                 
     plt.xlabel('Local Hour')
     plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-    plt.ylabel(r'$\overline{u_{h}}$'+' ('+varunit_dic['WS']+')')
-    plt.ylim([3,4.5])
-    #plt.legend()
-    plt.savefig(path_out+"amf_diu",dpi=dpi)
+    plt.ylabel('Fluxes'+' ('+varunit_dic['LE']+')')
+    plt.legend()
+    plt.savefig(path_out+'combined_ann_diu_errors/'+"amf_diu")
     plt.close()
 
-    # Annual cycle AMF
-    #print(np.amax(amf_ann_per_station['WS']))
-    ann_amf = amf_ann_per_station['WS']/len(amf_freq_per_station)
+    # -----------------------------------------------
+    # Annual cycle AMF averaged across all stations
+    # -----------------------------------------------
+    ann_amf_le = amf_ann_per_station_le['LE']/len(amf_freq_per_station_le) #TODO: Check maybe just one ann per station
+    ann_amf_hflux = amf_ann_per_station_hflux['H']/len(amf_freq_per_station_hflux) #TODO: Check
     plt.figure()
-    plt.plot(np.arange(1,13),ann_amf,color='k',label='AMF')
+    plt.plot(np.arange(1,13),ann_amf_le,color='b',label='LE')
+    plt.plot(np.arange(1,13),ann_amf_hflux,color='r',label='H')
     plt.xlabel('Month')
-    plt.ylabel(r'$\overline{u_{m}}$'+' ('+varunit_dic['WS']+')')
-    plt.ylim([3,4.5])
-    #plt.legend()
+    plt.ylabel('Fluxes'+' ('+varunit_dic['LE']+')')
+    plt.legend()
     plt.xticks(np.arange(1,13), month_names)
-    plt.savefig(path_out+"amf_ann",dpi=dpi)
+    plt.savefig(path_out+'combined_ann_diu_errors/'+"amf_ann")
     plt.close()
 
+    # -----------------------------------------------
+    # Combined monthly and hourly latent fluxes from AMF
+    # -----------------------------------------------
     # Intensity and freq for AMF
-    int_bin_amf = np.mean(amf_int_per_station,axis=0)
-    freq_bin_amf = np.sum(amf_freq_per_station,axis=0)/len(amf_freq_per_station)
+    int_bin_amf_le = np.mean(amf_int_per_station_le,axis=0)
+    freq_bin_amf_le = np.sum(amf_freq_per_station_le,axis=0)/len(amf_freq_per_station_le)
 
     # Create the heatmap
-    plt.figure(dpi=dpi)
-    plt.imshow(int_bin_amf, cmap='viridis', aspect='auto',vmin=0, vmax=5.)
+    plt.figure()
+    plt.imshow(int_bin_amf_le, cmap='viridis', aspect='auto')
 
     # Add color bar
-    plt.colorbar(label=r'$\overline{u_{h,m}}$'+' ('+varunit_dic['WS']+')')
+    plt.colorbar(label=r'$\overline{LE_{h,m}}$'+' ('+varunit_dic['LE']+')') # TODO: Put it in blocks
 
     # Annotate each cell with the frequency
     for m in range(12):
         for h in range(24):
-            plt.text(m,h,f'{int(freq_bin[h, m])}', ha='center', va='center', color='white',fontsize=11)
-            
+            plt.text(m,h,f'{int(freq_bin_le[h, m])}', ha='center', va='center', color='white',fontsize=11) # TODO: What is freq_bin
+
     # Set labels and title
     plt.xlabel('Month')
     plt.ylabel('Local Hour')
     plt.xticks(np.arange(0,12), month_names)
     plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
     plt.title('AMF')
-    plt.savefig(path_out+"AMF_WS_ann-diu",dpi=dpi)
+    plt.savefig(path_out+'error_diu_ann/'+"AMF_LE_ann-diu")
     plt.close()
+
+    # -----------------------------------------------
+    # Combined monthly and hourly sensible fluxes from AMF
+    # -----------------------------------------------
+    # Intensity and freq for AMF
+    int_bin_amf_hflux = np.mean(amf_int_per_station_hflux,axis=0)
+    freq_bin_amf_hflux = np.sum(amf_freq_per_station_hflux,axis=0)/len(amf_freq_per_station_hflux)
+
+    # Create the heatmap
+    plt.figure()
+    norm_cmap = mcolors.Normalize(vmin=-int_bin_amf_hflux.max(), vmax=int_bin_amf_hflux.max()) # Normalize the colormap for white around zero and linear
+    im = plt.imshow(int_bin_amf_hflux, cmap='seismic', norm=norm_cmap, aspect='auto')
+    cbar = plt.colorbar(im, label=r'$\overline{H_{h,m}}$'+' ('+varunit_dic['H']+')')
+
+    def get_text_colour(value, cmap, norm):
+        """Determine the text colour based on the luminance of the background colour."""
+        rgb = cmap(norm(value))[:3]
+        luminance = 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]
+        return 'black' if luminance > 0.4 else 'white'
+
+    # Annotate each cell with the frequency
+    for m in range(12):
+        for h in range(24):
+            value = int_bin_hflux[h, m]
+            text_colour = get_text_colour(value, plt.get_cmap('seismic'), norm_cmap)
+            plt.text(m, h, f'{int(freq_bin_hflux[h, m])}', ha='center', va='center', color=text_colour, fontsize=11)
+
+    # Set labels and title
+    ticks_colorbar = np.linspace(-150, 150, 5)
+    cbar.set_ticks(ticks_colorbar)
+    plt.xlabel('Month')
+    plt.ylabel('Local Hour')
+    plt.xticks(np.arange(0,12), month_names)
+    plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
+    plt.title('AMF')
+    plt.savefig(path_out+'error_diu_ann/'+"AMF_H_ann-diu")
+    plt.close()
+
+    ###################################################
+    # Comparing simulations with AMF
+    ###################################################
 
     bbox = dict(boxstyle='round', fc='grey', ec='white', alpha=0.5)
 
     bias_error = {}
     diu_error = {}
-    diu_error_nb = {}
     ann_error = {}
     ann_error_s = {}
-    ann_error_nb = {}
-    maxWS=30.
+    maxLE=150 # TODO: Verify this value
+    maxH=150 # TODO: Verify this value
     nbins=30
     error_names=['bias','diu','ann','diu-ann','fi','reg']
     error_names=[r'$\epsilon_{bias}$',r'$\epsilon_{diu}$',r'$\epsilon_{ann}$',r'$\epsilon_{ann,diu}$',r'$\epsilon_{fi}$',r'$\epsilon_{reg}$']
-    errors_all=np.zeros((len(error_names),len(gem_int_per_station.keys()),2))
+    errors_all=np.zeros((len(error_names),len(gem_int_per_station.keys()),2)) # Shape is (number of errors, number of simulations, LE and H)
     histo_sims={}
     histo_sims_unbiased={}
     for c_key,key in enumerate(gem_int_per_station.keys()):
@@ -542,303 +666,357 @@ def main():
         # Mean and distribution plotting.
         ###############################################
         # need to flatten
-        amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-        sim_ws = np.concatenate([arr.flatten() for arr in gem_ws[key]])
-        bins=np.histogram(amf_ws,range=(0,maxWS),bins=nbins)[1]
-        bins_c=0.5*(bins[:-1]+bins[1:])
-        bins2=np.histogram(amf_ws,range=(-maxWS,maxWS),bins=2*nbins)[1]
-        bins_c2=0.5*(bins2[:-1]+bins2[1:])
+        amf_le = np.concatenate([arr.flatten() for arr in amf_le])
+        sim_le = np.concatenate([arr.flatten() for arr in gem_flux[key]['LE']])
+        bins_le=np.histogram(amf_le,range=(0,maxLE),bins=nbins)[1]
+        bins_c_le=0.5*(bins_le[:-1]+bins_le[1:])
+        bins2_le=np.histogram(amf_le,range=(-maxLE,maxLE),bins=2*nbins)[1]
+        bins_c2_le=0.5*(bins2_le[:-1]+bins2_le[1:])
+
+        amf_hflux = np.concatenate([arr.flatten() for arr in amf_hflux])
+        sim_hflux = np.concatenate([arr.flatten() for arr in gem_flux[key]['H']])
+        bins_hflux=np.histogram(amf_hflux,range=(0,maxH),bins=nbins)[1]
+        bins_c_hflux=0.5*(bins_hflux[:-1]+bins_hflux[1:])
+        bins2_hflux=np.histogram(amf_hflux,range=(-maxH,maxH),bins=2*nbins)[1]
+        bins_c2_hflux=0.5*(bins2_hflux[:-1]+bins2_hflux[1:])
 
         # biased
-        histo_amf=np.histogram(amf_ws,range=(0,maxWS),bins=nbins)[0]
-        histo_sims[key]=np.histogram(sim_ws,range=(0,maxWS),bins=nbins)[0]
-        error= bins_c*(histo_sims[key]-histo_amf)
-        norm=1./XY
-        errors_all[4,c_key,0]=norm*np.sum(np.abs(error))
+        if key not in histo_sims:
+            histo_sims[key] = {}
+        histo_amf_le=np.histogram(amf_le,range=(0,maxLE),bins=nbins)[0]
+        histo_sims[key]['LE']=np.histogram(sim_le,range=(0,maxLE),bins=nbins)[0]
+        error_le= bins_c_le*(histo_sims[key]['LE']-histo_amf_le)
+        norm_le=1./XY_le
+        errors_all[4,c_key,0]=norm_le*np.sum(np.abs(error_le)) # 0 is for LE
 
-        # unbiased
-        histo_amf_unbiased=np.histogram(amf_ws-np.mean(amf_ws),range=(-maxWS,maxWS),bins=2*nbins)[0]
-        histo_sims_unbiased[key]=np.histogram(sim_ws-np.mean(sim_ws),range=(-maxWS,maxWS),bins=2*nbins)[0]
-        error= 0.5*(bins2[:-1]+bins2[1:])*(histo_sims_unbiased[key]-histo_amf_unbiased)
-        norm=1./XY
-        errors_all[4,c_key,1]=norm*np.sum(np.abs(error))
+        histo_amf_hflux=np.histogram(amf_hflux,range=(0,maxH),bins=nbins)[0]
+        histo_sims[key]['H']=np.histogram(sim_hflux,range=(0,maxH),bins=nbins)[0]
+        error_hflux= bins_c_hflux*(histo_sims[key]['H']-histo_amf_hflux)
+        norm_hflux=1./XY_hflux
+        errors_all[4,c_key,1]=norm_hflux*np.sum(np.abs(error_hflux)) # 1 is for H
 
-        plt.figure(dpi=dpi)
-        plt.step(bins[:-1],histo_amf,where='post',label="AMF",color='k')
-        plt.step(bins[:-1],histo_sims[key],where='post',label=p.sim_name[key],color='r')
-        plt.axvline(x=np.mean(amf_ws),color='k',ls='--')
-        plt.axvline(x=np.mean(sim_ws),color='r',ls='--')
-        #plt.legend(loc='best')
+        plt.figure()
+        plt.step(bins_le[:-1],histo_amf_le,where='post',label="AMF LE",color='#1f77b4')
+        plt.step(bins_le[:-1],histo_sims[key]['LE'],where='post',label=f"{p.sim_name[key]} LE",color='#ff7f0e')
+        plt.axvline(x=np.mean(amf_le),color='#1f77b4',ls='--')
+        plt.axvline(x=np.mean(sim_le),color='#ff7f0e',ls='--')
+        plt.step(bins_hflux[:-1],histo_amf_hflux,where='post',label="AMF H",color='#2ca02c')
+        plt.step(bins_hflux[:-1],histo_sims[key]['H'],where='post',label=f"{p.sim_name[key]} H",color='#d62728')
+        plt.axvline(x=np.mean(amf_hflux),color='#2ca02c',ls='--')
+        plt.axvline(x=np.mean(sim_hflux),color='#d62728',ls='--')
+        plt.legend(loc='best')
         plt.xscale("log")
         plt.yscale("log")
-        plt.xlim([1e-2,22]) # lower limit must be >0 (log(0) undefined)
-        plt.savefig(path_out+p.sim_name[key]+"_dist",dpi=dpi)
+        # plt.xlim([1e-2,22]) # lower limit must be >0 (log(0) undefined)
+        plt.savefig(path_out+"distribution/"+p.sim_name[key]+"_dist") # TODO: Change colours cause ugly
         plt.close()
 
         #print("Mean error for sim : "+ p.sim_name[key])
         #print(np.abs(np.mean(sim_ws) - np.mean(amf_ws)))
         #print("\n")
-        bias_error[key]=np.abs(np.mean(sim_ws) - np.mean(amf_ws))
+        bias_error[key] = {}
+        bias_error[key]['LE']=np.abs(np.mean(sim_le) - np.mean(amf_le))
+        bias_error[key]['H']=np.abs(np.mean(sim_hflux) - np.mean(amf_hflux))
 
         ###############################################
         # diu stuff here
         ###############################################
-        gem_diu = gem_diu_per_station[key]['WS']/X
+        gem_diu_le = gem_diu_per_station[key]['LE']/X_le
+        gem_diu_hflux = gem_diu_per_station[key]['H']/X_hflux
         hours = np.arange(1,25)
-        plt.figure(dpi=dpi)
-        plt.plot(hours,diu_amf,label="AMF",color='k',lw=lw)
-        plt.plot(hours,gem_diu,label=p.sim_name[key],lw=lw,color='r')
+        plt.figure()
+        plt.plot(hours,diu_amf_le,label="AMF LE",color='b')
+        plt.plot(hours,gem_diu_le['LE'],label=f"{p.sim_name[key]} LE",color='b',ls='--')
+        plt.plot(hours,diu_amf_hflux,label="AMF H",color='r')
+        plt.plot(hours,gem_diu_hflux['H'],label=f"{p.sim_name[key]} H",color='r',ls='--') # TODO: Verify why ['H'] is needed
         plt.xlabel("Local Hour")
         plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-        plt.savefig(path_out+p.sim_name[key]+"_diu_error",dpi=dpi)
+        plt.legend()
+        plt.savefig(path_out+"diu_error/"+p.sim_name[key]+"_diu_error")
         plt.close()
 
-        diu_error[key] = gem_diu-diu_amf
-        diu_error_nb[key] = (gem_diu-np.mean(sim_ws))-(diu_amf-np.mean(amf_ws))
-        
+        diu_error[key] = {}
+        diu_error[key]['LE'] = gem_diu_le['LE'] - diu_amf_le
+        diu_error[key]['H'] = gem_diu_hflux['H'] - diu_amf_hflux
+
         ###############################################
         # ann stuff here
         ###############################################
-        L = np.asarray(gem_int_per_station[key]).shape[0]
-        gem_ann = gem_ann_per_station[key]['WS']/L
+        L_le = np.asarray(gem_int_per_station[key]['LE']).shape[0]
+        gem_ann_le = gem_ann_per_station[key]['LE']/L_le
+        L_hflux = np.asarray(gem_int_per_station[key]['H']).shape[0]
+        gem_ann_hflux = gem_ann_per_station[key]['H']/L_hflux
         months = np.arange(1,13)
-        plt.figure(dpi=dpi)
-        plt.plot(months,ann_amf,label="AMF",color='k',lw=lw)
-        plt.plot(months,gem_ann,label=p.sim_name[key],lw=lw,color='r')
-        plt.xlabel("Month")
-        plt.savefig(path_out+p.sim_name[key]+"_ann_error",dpi=dpi)
+        plt.figure()
+        plt.plot(months,ann_amf_le,label="AMF LE",color='b')
+        plt.plot(months,gem_ann_le['LE'],label=f"{p.sim_name[key]} LE",color='b',ls='--')
+        plt.plot(months,ann_amf_hflux,label="AMF H",color='r')
+        plt.plot(months,gem_ann_hflux['H'],label=f"{p.sim_name[key]} H",color='r',ls='--')
+        plt.xlabel('Month')
+        plt.ylabel('Fluxes'+' ('+varunit_dic['LE']+')')
+        plt.xticks(np.arange(1,13), month_names)
+        plt.legend()
+        plt.savefig(path_out+"ann_error/"+p.sim_name[key]+"_ann_error")
         plt.close()
 
-        ann_error[key] = gem_ann-ann_amf
-        ann_error_nb[key] = (gem_ann-np.mean(sim_ws))-(ann_amf-np.mean(amf_ws))
-        
+        ann_error[key] = {}
+        ann_error[key]['LE'] = gem_ann_le['LE']-ann_amf_le
+        ann_error[key]['H'] = gem_ann_hflux['H']-ann_amf_hflux
+
         ###############################################
         # ann_diu stuff here
         ###############################################
-        L = np.asarray(gem_int_per_station[key]).shape[0]
-        int_bin_gem = np.sum(np.asarray(gem_int_per_station[key]),axis=0)/L
-        freq_bin_gem = np.sum(np.asarray(gem_freq_per_station[key]),axis=0)
+        L_le = np.asarray(gem_int_per_station[key]['LE']).shape[0]
+        int_bin_gem_le = np.sum(np.asarray(gem_int_per_station[key]['LE']),axis=0)/L_le
+        freq_bin_gem_le = np.sum(np.asarray(gem_freq_per_station[key]['LE']),axis=0)
+        L_hflux = np.asarray(gem_int_per_station[key]['H']).shape[0]
+        int_bin_gem_hflux = np.sum(np.asarray(gem_int_per_station[key]['H']),axis=0)/L_hflux
+        freq_bin_gem_hflux = np.sum(np.asarray(gem_freq_per_station[key]['H']),axis=0)
 
         # Compute absolute error
-        error = freq_bin_amf*(int_bin_gem-int_bin_amf)
-        abs_error = freq_bin_amf*np.abs(int_bin_gem-int_bin_amf)
-        norm=1./XY
-        errors_all[0,c_key,0]=norm*np.abs(np.sum(error))
-        errors_all[1,c_key,0]=norm*np.sum(np.abs(np.sum(error,axis=0)))
-        errors_all[2,c_key,0]=norm*np.sum(np.abs(np.sum(error,axis=1)))
-        errors_all[3,c_key,0]=norm*np.sum(np.abs(error))
-        
+        error_le = freq_bin_amf_le*(int_bin_gem_le-int_bin_amf_le)
+        abs_error_le = freq_bin_amf_le*np.abs(int_bin_gem_le-int_bin_amf_le)
+        norm_le=1./XY_le
+        errors_all[0,c_key,0]=norm_le*np.abs(np.sum(error_le))
+        errors_all[1,c_key,0]=norm_le*np.sum(np.abs(np.sum(error_le,axis=0)))
+        errors_all[2,c_key,0]=norm_le*np.sum(np.abs(np.sum(error_le,axis=1)))
+        errors_all[3,c_key,0]=norm_le*np.sum(np.abs(error_le))
+
+        error_hflux = freq_bin_amf_hflux*(int_bin_gem_hflux-int_bin_amf_hflux)
+        abs_error_hflux = freq_bin_amf_hflux*np.abs(int_bin_gem_hflux-int_bin_amf_hflux)
+        norm_hflux=1./XY_hflux
+        errors_all[0,c_key,1]=norm_hflux*np.abs(np.sum(error_hflux))
+        errors_all[1,c_key,1]=norm_hflux*np.sum(np.abs(np.sum(error_hflux,axis=0)))
+        errors_all[2,c_key,1]=norm_hflux*np.sum(np.abs(np.sum(error_hflux,axis=1)))
+        errors_all[3,c_key,1]=norm_hflux*np.sum(np.abs(error_hflux))
+
         #print("Diurnal error for sim: " + p.sim_name[key])
         #print("\n")
 
-        # Create the heatmap
-        plt.figure(dpi=dpi)
-        lims=2.5
-        plt.imshow(error/freq_bin_amf, cmap='seismic', aspect='auto',vmin=-lims,vmax=lims)
-        plt.colorbar(label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['WS']+')')
-        plt.xlabel('Month')
+        ###############################################
+        # Heatmaps of errors for LE and H
+        ###############################################
+        # Create the heatmap for LE
+        plt.figure()
+        # print(max(abs((error_le/freq_bin_amf_le).max()), abs((error_le/freq_bin_amf_le).min()))) # This was used to find the maximum absolute value for normalization
+        LIMIT = 152
+        norm_cmap = mcolors.Normalize(vmin=-LIMIT, vmax=LIMIT) # Normalize the colormap for white around zero
+        plt.imshow(error_le/freq_bin_amf_le, cmap='seismic', norm=norm_cmap, aspect='auto') # ,vmin=-lims,vmax=lims
+        plt.colorbar(label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['LE']+')')
+        plt.xlabel('Month') # TODO: Change the normalization
         plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
         plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
-        plt.title(p.sim_name[key]+ ' - biased')
-        plt.savefig(path_out+p.sim_name[key]+"_error_diu-ann",dpi=dpi)
+        plt.title(p.sim_name[key] + ' - LE')
+        plt.savefig(path_out+"error_diu_ann/"+p.sim_name[key]+"_error_diu-ann_LE")
         plt.close()
 
-        # Compute all error
-        error = freq_bin_amf*((int_bin_gem-np.mean(sim_ws))-(int_bin_amf-np.mean(amf_ws)))
-        abs_error = freq_bin_amf*np.abs(int_bin_gem-np.mean(sim_ws))-(int_bin_amf-np.mean(amf_ws))
-        errors_all[0,c_key,1]=norm*np.abs(np.sum(error))
-        errors_all[1,c_key,1]=norm*np.sum(np.abs(np.sum(error,axis=0)))
-        errors_all[2,c_key,1]=norm*np.sum(np.abs(np.sum(error,axis=1)))
-        errors_all[3,c_key,1]=norm*np.sum(np.abs(error))
-        #print("Diurnal error for sim: " + p.sim_name[key])
-        #print("\n")
-
-        # Create the heatmap
-        plt.figure(dpi=dpi)
-        plt.imshow(error/freq_bin_amf, cmap='seismic', aspect='auto',vmin=-lims,vmax=lims)
-        plt.colorbar(label=r'$\epsilon^{\prime}_{ann,diu}$'+' ('+varunit_dic['WS']+')')
+        # Create the heatmap for H
+        plt.figure()
+        # print(max(abs((error_hflux/freq_bin_amf_hflux).max()), abs((error_hflux/freq_bin_amf_hflux).min()))) # This was used to find the maximum absolute value for normalization
+        LIMIT = 170
+        norm_cmap = mcolors.Normalize(vmin=-LIMIT, vmax=LIMIT) # Normalize the colormap for white around zero
+        plt.imshow(error_hflux/freq_bin_amf_hflux, cmap='seismic', norm=norm_cmap, aspect='auto') # ,vmin=-lims,vmax=lims
+        plt.colorbar(label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['H']+')')
         plt.xlabel('Month')
         plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
         plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
-        plt.title(p.sim_name[key]+ ' - unbiased')
-        plt.savefig(path_out+p.sim_name[key]+"_error_diu-ann_nb",dpi=dpi)
+        plt.title(p.sim_name[key] + ' - H')
+        plt.savefig(path_out+"error_diu_ann/"+p.sim_name[key]+"_error_diu-ann_H")
         plt.close()
 
     # Plot diu and ann error cycles
-    plt.figure(dpi=dpi)
+    plt.figure()
     plt.plot([0,25],[0,0],color='grey',linewidth=.75)
     for key in diu_error:
-        plt.plot(np.arange(1,25),diu_error[key], label=p.sim_name[key], color=p.sim_color[key])
-        # print(np.mean(diu_error[key]))
+        plt.plot(np.arange(1,25),diu_error[key]['LE'], label=f"{p.sim_name[key]} LE", color=p.sim_color[key], linewidth=1.5)
     plt.xlabel('Local Hour')
     plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-    plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['WS']+')')
-    plt.ylim([-1.2,1.2])
+    plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['LE']+')')
+    plt.ylim([-45,45])
     plt.xlim([0,25])
-    plt.text(1, 1., 'biased', bbox=bbox)
-    plt.savefig(path_out+"diu_error",dpi=dpi)
-    
-    plt.figure(dpi=dpi)
-    plt.plot([0,13],[0,0],color='grey',linewidth=.75)
-    for key in ann_error:
-        plt.plot(np.arange(1,13),ann_error[key], label=p.sim_name[key], color=p.sim_color[key])
-    plt.xlabel('Month')
-    plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['WS']+')')
-    plt.ylim([-1.2,1.2])
-    plt.xticks(np.arange(1,13), month_names)
-    plt.xlim([0,13])
-    plt.text(1, 1., 'biased', bbox=bbox)
-    plt.savefig(path_out+"ann_error",dpi=dpi)
+    plt.text(1, 30, 'LE', bbox=bbox)
+    plt.savefig(path_out+'combined_ann_diu_errors/'+"diu_error_LE")
 
-    plt.figure(dpi=dpi)
-    plt.plot([0,13],[0,0],color='grey',linewidth=.75)
-    for key in ann_error_nb:
-        plt.plot(np.arange(1,13),ann_error_nb[key], label=p.sim_name[key], color=p.sim_color[key])
-    plt.xlabel("Month")
-    plt.ylabel(r"$\epsilon^{\prime}_{ann}$"+' ('+varunit_dic['WS']+')')
-    plt.ylim([-1.2,1.2])
-    plt.xticks(np.arange(1,13), month_names)
-    plt.xlim([0,13])
-    plt.text(1, 1., 'unbiased', bbox=bbox)
-    plt.savefig(path_out+"ann_error_nb",dpi=dpi)
-
-    plt.figure(dpi=dpi)
+    plt.figure()
     plt.plot([0,25],[0,0],color='grey',linewidth=.75)
     for key in diu_error:
-        plt.plot(np.arange(1,25),diu_error_nb[key], label=p.sim_name[key], color=p.sim_color[key])
-    plt.xlabel("Local Hour")
+        plt.plot(np.arange(1,25),diu_error[key]['H'], label=f"{p.sim_name[key]} H", color=p.sim_color[key], linewidth=1.5)
+    plt.xlabel('Local Hour')
     plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-    plt.ylabel(r"$\epsilon^{\prime}_{diu}$"+' ('+varunit_dic['WS']+')')
-    plt.ylim([-1.2,1.2])
+    plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['H']+')')
+    plt.ylim([-100,100])
     plt.xlim([0,25])
-    plt.text(1, 1., 'unbiased', bbox=bbox)
-    plt.savefig(path_out+"diu_error_nb",dpi=dpi)
+    plt.text(1, 60, 'H', bbox=bbox)
+    plt.savefig(path_out+'combined_ann_diu_errors/'+"diu_error_H")
+
+    plt.figure()
+    plt.plot([0,13],[0,0],color='grey',linewidth=.75)
+    for key in ann_error:
+        plt.plot(np.arange(1,13),ann_error[key]['LE'], label=f"{p.sim_name[key]} LE", color=p.sim_color[key], linewidth=1.5)
+    plt.xlabel('Month')
+    plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['LE']+')')
+    plt.ylim([-62,62])
+    plt.xticks(np.arange(1,13), month_names)
+    plt.xlim([0,13])
+    plt.text(1, 50, 'LE', bbox=bbox)
+    plt.savefig(path_out+'combined_ann_diu_errors/'+"ann_error_LE")
+
+    plt.figure()
+    plt.plot([0,13],[0,0],color='grey',linewidth=.75)
+    for key in ann_error:
+        plt.plot(np.arange(1,13),ann_error[key]['H'], label=f"{p.sim_name[key]} H", color=p.sim_color[key], linewidth=1.5)
+    plt.xlabel('Month')
+    plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['H']+')')
+    plt.ylim([-62,62])
+    plt.xticks(np.arange(1,13), month_names)
+    plt.xlim([0,13])
+    plt.text(1, 50, 'H', bbox=bbox)
+    plt.savefig(path_out+'combined_ann_diu_errors/'+"ann_error_H")
 
     # Plot dist in on figure
-    plt.figure(dpi=dpi)
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-    plt.step(bins[:-1],histo_amf,where='post',label="AMF",color='black',linewidth=lw)
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
+    plt.figure()
+    amf_le = np.concatenate([arr.flatten() for arr in amf_le])
+    plt.step(bins_le[:-1],histo_amf_le,where='post',label="AMF",color='black')
+    plt.xlabel(r'$\overline{LE^{o}_k}$'+' ('+varunit_dic['LE']+')')
     plt.ylabel(r'$N_{k}$')
     plt.yscale("log")
-    plt.xlim([0,22])
-    plt.savefig(path_out+"AMF_fi",dpi=dpi)
+    # plt.xlim([0,22])
+    plt.savefig(path_out+'distribution_errors/'+"AMF_fi_LE")
     plt.close()
 
     # Plot dist in on figure
-    maxA=0
-    plt.figure(dpi=dpi)
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
-    for key in gem_int_per_station.keys():
-        plt.step(bins2[:-1],bins_c2*(histo_sims_unbiased[key]-histo_amf_unbiased),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-        #maxA=np.max((maxA,np.max(np.abs(bins_c*(histo_sims_unbiased[key]-histo_amf_unbiased)))))
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    #plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel('absolute error ('+varunit_dic['WS']+')')
-    plt.xlim([-6,15])
-    #limA=10**np.ceil(np.log10(maxA))
-    plt.ylim([-100000,100000])
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.text(10, 80000.,"unbiased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_unbiased",dpi=dpi)
-    plt.close()
-    plt.close('all')
-     
-    plt.figure(dpi=dpi)
-    for key in gem_int_per_station.keys():
-        denom = histo_amf_unbiased + histo_sims_unbiased[key]
-        with np.errstate(divide='ignore', invalid='ignore'):
-            err = (histo_sims_unbiased[key] - histo_amf_unbiased) / denom
-            err = np.where(denom == 0, np.nan, err)  # Set result to NaN where denominator is zero
-        plt.step(bins2[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel('relative error (%)')
-    plt.xlim([-6,15])
-    plt.ylim([-100,100])
-    #plt.legend()
-    plt.text(10, 80.,"unbiased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_unbiased-rel")
+    plt.figure()
+    amf_hflux = np.concatenate([arr.flatten() for arr in amf_hflux])
+    plt.step(bins_hflux[:-1],histo_amf_hflux,where='post',label="AMF",color='black') # Check for negative values
+    plt.xlabel(r'$\overline{H^{o}_k}$'+' ('+varunit_dic['H']+')')
+    plt.ylabel(r'$N_{k}$')
+    plt.yscale("log")
+    # plt.xlim([0,22])
+    plt.savefig(path_out+'distribution_errors/'+"AMF_fi_H")
     plt.close()
 
-    # Plot unbias dist in on figure
-    plt.figure(dpi=dpi)
-    maxA=0
-    amf_ws = np.concatenate([arr.flatten() for arr in amf_ws])
+    # Plot bias dist in on figure
+    plt.figure()
+    maxA_le=0
+    amf_le = np.concatenate([arr.flatten() for arr in amf_le])
     for key in gem_int_per_station.keys():
-        plt.step(bins[:-1],bins_c*(histo_sims[key]-histo_amf),where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)     
-        maxA=np.max((maxA,np.max(np.abs(bins_c*(histo_sims[key]-histo_amf)))))
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel(r'$(N^{s}_{k}-N^{o}_{k}) \cdot u^{o}_{k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel('absolute error ('+varunit_dic['WS']+')')
-    plt.xlim([0,22])
-    limA=10**np.ceil(np.log10(maxA))
-    plt.ylim([-300000,300000])
+        plt.step(bins_le[:-1],bins_c_le*(histo_sims[key]['LE']-histo_amf_le),where='post',label=p.sim_name[key], color=p.sim_color[key])     
+        maxA_le=np.max((maxA_le,np.max(np.abs(bins_c_le*(histo_sims[key]['LE']-histo_amf_le)))))
+    plt.xlabel(r'$\overline{LE^{o}_k}$'+' ('+varunit_dic['LE']+')')
+    plt.ylabel('Absolute error ('+varunit_dic['LE']+')') # r'$(N^{s}_{k}-N^{o}_{k}) \cdot LE^{o}_{k}$'+' ('+varunit_dic['LE']+')'
+    # plt.xlim([0,22])
+    plt.ylim([-350000,350000])
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.text(17, 260000.,"biased", bbox=bbox)
+    # plt.text(130, 270000.,"LE", bbox=bbox)
     #plt.text(.99, .99, 'biased', ha='right', va='bottom', transform=ax.transAxes, bbox=bbox)
-    plt.savefig(path_out+"error_fi_biased",dpi=dpi)
+    plt.savefig(path_out+'distribution_errors/'+"error_fi_LE")
     plt.close()
     plt.close('all')
 
-    plt.figure(dpi=dpi)
+    plt.figure()
+    maxA_hflux=0
+    amf_hflux = np.concatenate([arr.flatten() for arr in amf_hflux])
     for key in gem_int_per_station.keys():
-        denom = histo_amf + histo_sims[key]
-        with np.errstate(divide='ignore', invalid='ignore'):
-            err = (histo_sims[key] - histo_amf) / denom
-            err = np.where(denom == 0, np.nan, err)  # Set result to NaN where denominator is zero
-        plt.step(bins[:-1],100.*err,where='post',label=p.sim_name[key], color=p.sim_color[key],linewidth=lw/2)
-    #plt.yscale("log")
-    plt.xlabel(r'$\overline{u^{o}_k}$'+' ('+varunit_dic['WS']+')')
-    plt.ylabel('relative error (%)')
-    #plt.yscale("log")
-    plt.xlim([0,22])
-    #plt.legend()
-    plt.ylim([-100,100])
-    plt.text(17, 80.,"biased", bbox=bbox)
-    plt.savefig(path_out+"error_fi_biased-rel")
+        plt.step(bins_hflux[:-1],bins_c_hflux*(histo_sims[key]['H']-histo_amf_hflux),where='post',label=p.sim_name[key], color=p.sim_color[key])
+        maxA_hflux=np.max((maxA_hflux,np.max(np.abs(bins_c_hflux*(histo_sims[key]['H']-histo_amf_hflux)))))
+    plt.xlabel(r'$\overline{H^{o}_k}$'+' ('+varunit_dic['H']+')')
+    plt.ylabel('Absolute error ('+varunit_dic['H']+')') # r'$(N^{s}_{k}-N^{o}_{k}) \cdot H^{o}_{k}$'+' ('+varunit_dic['H']+')'
+    # plt.xlim([0,22])
+    plt.ylim([-150000,150000])
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    # plt.text(140, 120000.,"H", bbox=bbox)
+    #plt.text(.99, .99, 'biased', ha='right', va='bottom', transform=ax.transAxes, bbox=bbox)
+    plt.savefig(path_out+'distribution_errors/'+"error_fi_H")
     plt.close()
+    plt.close('all')
 
+    plt.figure()
+    for key in gem_int_per_station.keys():
+        denom_le = histo_amf_le + histo_sims[key]['LE']
+        with np.errstate(divide='ignore', invalid='ignore'):
+            err_le = (histo_sims[key]['LE'] - histo_amf_le) / denom_le
+            err_le = np.where(denom_le == 0, np.nan, err_le)
+        plt.step(bins_le[:-1],100.*err_le,where='post',label=p.sim_name[key], color=p.sim_color[key])
+    #plt.yscale("log")
+    plt.xlabel(r'$\overline{LE^{o}_k}$'+' ('+varunit_dic['LE']+')')
+    plt.ylabel('Relative error (%)')
+    #plt.yscale("log")
+    # plt.xlim([0,22])
+    # #plt.legend()
+    plt.ylim([-30,30])
+    # plt.text(130, 25,"LE", bbox=bbox)
+    plt.savefig(path_out+'distribution_errors/'+"error_fi_LE-rel")
+    plt.close()
+    plt.close('all')
+
+    plt.figure()
+    for key in gem_int_per_station.keys():
+        denom_hflux = histo_amf_hflux + histo_sims[key]['H']
+        with np.errstate(divide='ignore', invalid='ignore'):
+            err_hflux = (histo_sims[key]['H'] - histo_amf_hflux) / denom_hflux
+            err_hflux = np.where(denom_hflux == 0, np.nan, err_hflux)
+        plt.step(bins_hflux[:-1],100.*err_hflux,where='post',label=p.sim_name[key], color=p.sim_color[key])
+    #plt.yscale("log")
+    plt.xlabel(r'$\overline{H^{o}_k}$'+' ('+varunit_dic['H']+')')
+    plt.ylabel('Relative error (%)')
+    #plt.yscale("log")
+    # plt.xlim([0,22])
+    # #plt.legend()
+    plt.ylim([-54,54])
+    # plt.text(140, 45,"H", bbox=bbox)
+    plt.savefig(path_out+'distribution_errors/'+"error_fi_H-rel")
+    plt.close()
     plt.close('all')
 
     nn=6
+    # print(errors_all)
     errors_norm=cp.deepcopy(errors_all)
-    for ii in range(2):
-        if ii==0:
-            title='biased'
-        else:
-            title='unbiased'
-        errors_all[5,:,ii]=np.load('add_reg_'+title+'.npy')
-        for jj,jl in enumerate(error_names):
-            errors_norm[jj,:,ii]=errors_all[jj,:,ii]/np.max(errors_all[jj,:,ii])
+    for ii in ['LE','H']:
+        if ii=='LE':
+            errors_all[5,:,0]=np.load('add_reg_LE.npy')
+            for jj,jl in enumerate(error_names):
+                errors_norm[jj,:,0]=errors_all[jj,:,0]/np.max(errors_all[jj,:,0])
+        elif ii=='H':
+            errors_all[5,:,1]=np.load('add_reg_H.npy')
+            for jj,jl in enumerate(error_names):
+                errors_norm[jj,:,1]=errors_all[jj,:,1]/np.max(errors_all[jj,:,1])
 
     for ii in range(2):
+        nn1=1
         if ii==0:
-            title='biased'
-            nn1=1
+            title='LE'
+            for c_key,key in enumerate(gem_int_per_station.keys()):
+                plt.plot(np.arange(nn1,nn+1),errors_all[nn1-1:nn,c_key,0],color=p.sim_color[key],label=p.sim_name[key],marker='o')
         else:
-            title='unbiased'
-            nn1=2
-        for c_key,key in enumerate(gem_int_per_station.keys()):
-            plt.plot(np.arange(nn1,nn+1),errors_all[nn1-1:nn,c_key,ii],color=p.sim_color[key],label=p.sim_name[key],marker='o')
-        plt.ylabel(r'$\epsilon$'+' ('+varunit_dic['WS']+')')
+            title='H'
+            for c_key,key in enumerate(gem_int_per_station.keys()):
+                plt.plot(np.arange(nn1,nn+1),errors_all[nn1-1:nn,c_key,1],color=p.sim_color[key],label=p.sim_name[key],marker='o')
+        plt.ylabel(r'$\epsilon$'+' ('+varunit_dic['LE']+')')
         plt.xticks(np.arange(1,nn+1), error_names[:nn], rotation=45)
         plt.yscale("log")
-        plt.ylim([0.00005,2.])
+        plt.ylim([0.2,4])
+        yticks = [0.2, 0.5, 1, 2, 4]
+        yticklabels = [r'$2 \times 10^{-1}$', r'$5 \times 10^{-1}$', r'$1$', r'$2$', r'$4$']
+        plt.yticks(yticks, yticklabels)
         plt.xlim([0,nn+1])
-        plt.text(.25, .8,title, bbox=bbox)
-        plt.savefig(path_out+"abs_errors_"+title,dpi=dpi)
+        plt.text(.25, 3, title, bbox=bbox)
+        plt.savefig(path_out+'combined_errors/'+"abs_errors_"+title)
         plt.close()
-        
-        for c_key,key in enumerate(gem_int_per_station.keys()):
-            plt.plot(np.arange(nn1,nn+1),errors_norm[nn1-1:nn,c_key,ii],color=p.sim_color[key],label=p.sim_name[key],marker='o')
-        plt.ylabel(r'$\hat{\epsilon}$'+' ('+varunit_dic['WS']+')')
+
+        if ii==0:
+            for c_key,key in enumerate(gem_int_per_station.keys()):
+                plt.plot(np.arange(nn1,nn+1),errors_norm[nn1-1:nn,c_key,0],color=p.sim_color[key],label=p.sim_name[key],marker='o')
+        else:
+            for c_key,key in enumerate(gem_int_per_station.keys()):
+                plt.plot(np.arange(nn1,nn+1),errors_norm[nn1-1:nn,c_key,1],color=p.sim_color[key],label=p.sim_name[key],marker='o')
+        plt.ylabel(r'$\hat{\epsilon}$'+' ('+varunit_dic['LE']+')')
         plt.xticks(np.arange(1,nn+1), error_names[:nn], rotation=45)
         plt.ylim([0,1.1])
         plt.xlim([0,nn+1])
-        plt.text(.25,1.,title, bbox=bbox)
-        plt.savefig(path_out+"norm_errors_"+title,dpi=dpi)
+        plt.text(.25, 1, title, bbox=bbox)
+        plt.savefig(path_out+'combined_errors/'+"norm_errors_"+title)
         plt.close()
 
 if __name__ == '__main__':
