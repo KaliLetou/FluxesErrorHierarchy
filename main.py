@@ -149,7 +149,6 @@ def main():
         bins_all['ZL'][3]=.02
         bins_all['ZL'][4]=.4
 
-        # for flux in ['H', 'LE']:
         variables_plot = [var_flux,'ZL','USTAR'] # ['WS','ZL','USTAR','TA','H','LE','PA','RH']
         reg='all'
         add=z0+'_'+var_flux
@@ -198,9 +197,7 @@ def main():
                     cmap.set_bad( "gray", alpha=0 )
                     if term=='int':
                         Z=int_bin_a.T
-                        tt=Z.max()
-                        bb=Z.min()
-                        levels = MaxNLocator(nbins=11).tick_values(bb,tt)
+                        levels = MaxNLocator(nbins=11).tick_values(-100,250)
                         norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
                     if term=='freq':
                         Z=freq_bin_a.T
@@ -282,7 +279,6 @@ def main():
                     plt.close()
                     if term == 'tot' :
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
-                        #Z_v = np.sum(abs(var_errors[1:,:,:]),axis=0).T
                         Zmax=100
                         levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
                         cmap   = copy.copy(plt.get_cmap('cool'))
@@ -434,14 +430,12 @@ def main():
                 'H': (('time',), HFLUX),
                 }, coords={'time': corrected_dates})
 
-
             ds_gem_le = xr.Dataset({
                     'LE': (('time',), LE_gem),
                     }, coords={'time': corrected_dates_gem})
             ds_gem_hflux= xr.Dataset({
                     'H': (('time',), HFLUX_gem),
                     }, coords={'time': corrected_dates_gem})
-
 
             # Convert corrected_dates to numpy array
             corrected_dates = np.array(corrected_dates)
@@ -452,7 +446,6 @@ def main():
             months = np.array([date.month for date in corrected_dates], dtype=int)
             hours_gem = np.array([date.hour for date in corrected_dates_gem], dtype=int)
             months_gem = np.array([date.month for date in corrected_dates_gem], dtype=int)
-
 
             # Convert hour and month components back to datetime objects
             hour_objects = np.array([np.datetime64(f'1970-01-01T{hour:02d}:00:00') for hour in hours])
@@ -547,11 +540,13 @@ def main():
     diu_amf_le = amf_diu_per_station_le['LE']/len(amf_freq_per_station_le)
     diu_amf_hflux = amf_diu_per_station_hflux['H']/len(amf_freq_per_station_hflux)
     def plot_diu_amf_cycle(diu_data, flux_name, filename):
+        """Plot the diurnal cycle of AMF data."""
         plt.figure()
         plt.plot(hour_names,diu_data,linestyle='-',color='k',label='Flux')
         plt.xlabel('Local Hour')
         plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
         plt.ylabel(flux_name+' ('+varunit_dic[flux_name]+')')
+        plt.ylim(-30, 155)
         plt.savefig(path_out+'combined_ann_diu_errors/'+filename)
         plt.close()
     plot_diu_amf_cycle(diu_amf_le, 'LE', 'amf_diu_LE')
@@ -562,14 +557,18 @@ def main():
     # -----------------------------------------------
     ann_amf_le = amf_ann_per_station_le['LE']/len(amf_freq_per_station_le)
     ann_amf_hflux = amf_ann_per_station_hflux['H']/len(amf_freq_per_station_hflux)
-    plt.figure()
-    plt.plot(np.arange(1,13),ann_amf_le,marker='o',linestyle='-',color='b',label='LE')
-    plt.plot(np.arange(1,13),ann_amf_hflux,marker='o',linestyle='-',color='r',label='H')
-    plt.xlabel('Month')
-    plt.ylabel('Fluxes'+' ('+varunit_dic['LE']+')')
-    plt.xticks(np.arange(1,13), month_names)
-    plt.savefig(path_out+'combined_ann_diu_errors/'+"amf_ann")
-    plt.close()
+    def plot_ann_amf_cycle(ann_data, flux_name, filename):
+        """Plot the annual cycle of AMF data."""
+        plt.figure()
+        plt.plot(np.arange(1,13),ann_data,linestyle='-',color='k',label='Flux')
+        plt.xlabel('Month')
+        plt.ylabel(flux_name+' ('+varunit_dic[flux_name]+')')
+        plt.xticks(np.arange(1,13), month_names)
+        plt.ylim(-5, 110)
+        plt.savefig(path_out+'combined_ann_diu_errors/'+filename)
+        plt.close()
+    plot_ann_amf_cycle(ann_amf_le, 'LE', 'amf_ann_LE')
+    plot_ann_amf_cycle(ann_amf_hflux, 'H', 'amf_ann_H')
 
     # -----------------------------------------------
     # Combined monthly and hourly latent fluxes from AMF
@@ -578,33 +577,25 @@ def main():
     int_bin_amf_le = np.mean(amf_int_per_station_le,axis=0)
     freq_bin_amf_le = np.sum(amf_freq_per_station_le,axis=0)/len(amf_freq_per_station_le)
 
-    def get_text_colour(value, cmap, norm):
-        """Determine the text colour based on the luminance of the background colour."""
-        rgb = cmap(norm(value))[:3]
-        luminance = 0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]
-        return 'black' if luminance > 0.4 else 'white'
-
     # Create the heatmap
     plt.figure()
     plt.imshow(int_bin_amf_le, cmap='viridis', aspect='auto')
-    # levels = MaxNLocator(nbins=11).tick_values(0, int_bin_amf_le.max())
-    # cmap = plt.get_cmap('viridis')
-    # norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-    # im = plt.imshow(int_bin_amf_le, cmap=cmap, norm=norm_cmap, aspect='auto')
-
-    # Add color bar
-    plt.colorbar(label=r'$\overline{LE_{h,m}}$'+' ('+varunit_dic['LE']+')')
-    # plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\overline{LE_{h,m}}$'+' ('+varunit_dic['LE']+')')
+    levels = MaxNLocator(nbins=11).tick_values(0, int_bin_amf_le.max())
+    cmap = plt.get_cmap('viridis')
+    norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+    im = plt.imshow(int_bin_amf_le, cmap=cmap, norm=norm_cmap, aspect='auto')
+    cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\overline{LE_{h,m}}$'+' ('+varunit_dic['LE']+')')
 
     # Annotate each cell with the frequency
     for m in range(12):
         for h in range(24):
-            plt.text(m,h,f'{int(freq_bin_le[h, m])}', ha='center', va='center', color='white',fontsize=11)
-            # value = int_bin_amf_le[h, m]
-            # text_colour = get_text_colour(value, cmap, norm_cmap)
-            # plt.text(m, h, f'{int(freq_bin_amf_le[h, m])}', ha='center', va='center', color=text_colour, fontsize=11)
+            value = int_bin_amf_le[h, m]
+            plt.text(m, h, f'{int(freq_bin_amf_le[h, m])}', ha='center', va='center', color="white", fontsize=11)
 
     # Set labels and title
+    ticks = np.linspace(0, 250, 5)
+    cbar.set_ticks(ticks)
+    cbar.set_ticklabels([f"{int(t)}" for t in ticks])
     plt.xlabel('Month')
     plt.ylabel('Local Hour')
     plt.xticks(np.arange(0,12), month_names)
@@ -622,25 +613,23 @@ def main():
 
     # Create the heatmap
     plt.figure()
-    norm_cmap = mcolors.Normalize(vmin=-int_bin_amf_hflux.max(), vmax=int_bin_amf_hflux.max()) # Normalize the colormap for white around zero and linear
-    # levels = MaxNLocator(nbins=11).tick_values(-int_bin_amf_hflux.max(), int_bin_amf_hflux.max())
-    # cmap = plt.get_cmap('seismic')
-    # norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-    im = plt.imshow(int_bin_amf_hflux, cmap='seismic', norm=norm_cmap, aspect='auto')
-    cbar = plt.colorbar(im, label=r'$\overline{H_{h,m}}$'+' ('+varunit_dic['H']+')')
-    # cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\overline{H_{h,m}}$'+' ('+varunit_dic['H']+')')
+    levels = np.linspace(-int_bin_amf_hflux.max(), int_bin_amf_hflux.max(), 12)
+    cmap = plt.get_cmap('PuOr')
+    norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+    im = plt.imshow(int_bin_amf_hflux, cmap=cmap, norm=norm_cmap, aspect='auto')
+    cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\overline{H_{h,m}}$'+' ('+varunit_dic['H']+')')
 
     # Annotate each cell with the frequency
     for m in range(12):
         for h in range(24):
             value = int_bin_hflux[h, m]
-            text_colour = get_text_colour(value, plt.get_cmap('seismic'), norm_cmap)
-            # text_colour = get_text_colour(value, cmap, norm_cmap)
-            plt.text(m, h, f'{int(freq_bin_hflux[h, m])}', ha='center', va='center', color=text_colour, fontsize=11)
+            text_color = "black"
+            if value > 60:
+                text_color = "white"
+            plt.text(m, h, f'{int(freq_bin_hflux[h, m])}', ha='center', va='center', color=text_color, fontsize=11)
 
     # Set labels and title
-    ticks_colorbar = np.linspace(-150, 150, 5)
-    cbar.set_ticks(ticks_colorbar)
+    cbar.set_ticks(np.linspace(-150, 150, 5))
     plt.xlabel('Month')
     plt.ylabel('Local Hour')
     plt.xticks(np.arange(0,12), month_names)
@@ -797,11 +786,14 @@ def main():
         ###############################################
         # Create the heatmap for LE
         plt.figure()
-        # print(max(abs((error_le/freq_bin_amf_le).max()), abs((error_le/freq_bin_amf_le).min()))) # This was used to find the maximum absolute value for normalization
-        LIMIT = 152
-        norm_cmap = mcolors.Normalize(vmin=-LIMIT, vmax=LIMIT) # Normalize the colormap for white around zero
-        plt.imshow(error_le/freq_bin_amf_le, cmap='seismic', norm=norm_cmap, aspect='auto') # ,vmin=-lims,vmax=lims
-        plt.colorbar(label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['LE']+')')
+        LIMIT = 170
+        levels = np.linspace(-LIMIT, LIMIT, 12)
+        cmap = copy.copy(plt.get_cmap('seismic'))
+        cmap.set_bad("gray", alpha=0)  # Set bad values to gray
+        norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+        im = plt.imshow(error_le/freq_bin_amf_le, cmap=cmap, norm=norm_cmap, aspect='auto')
+        cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['LE']+')')
+        cbar.set_ticks(np.linspace(-150, 150, 5))
         plt.xlabel('Month')
         plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
@@ -812,11 +804,10 @@ def main():
 
         # Create the heatmap for H
         plt.figure()
-        # print(max(abs((error_hflux/freq_bin_amf_hflux).max()), abs((error_hflux/freq_bin_amf_hflux).min()))) # This was used to find the maximum absolute value for normalization
-        LIMIT = 170
-        norm_cmap = mcolors.Normalize(vmin=-LIMIT, vmax=LIMIT) # Normalize the colormap for white around zero
-        plt.imshow(error_hflux/freq_bin_amf_hflux, cmap='seismic', norm=norm_cmap, aspect='auto') # ,vmin=-lims,vmax=lims
-        plt.colorbar(label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['H']+')')
+        norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+        im = plt.imshow(error_hflux/freq_bin_amf_hflux, cmap=cmap, norm=norm_cmap, aspect='auto')
+        cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['H']+')')
+        cbar.set_ticks(np.linspace(-150, 150, 5))
         plt.xlabel('Month')
         plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
@@ -826,61 +817,46 @@ def main():
         plt.close()
 
     # Plot diu and ann error cycles
-    plt.figure()
-    plt.plot([0,25],[0,0],color='grey',linewidth=.75)
-    for key in diu_error:
-        plt.plot(hour_names,diu_error[key]['LE'], label=f"{p.sim_name[key]} LE", color=p.sim_color[key], linewidth=1.5)
-    plt.xlabel('Local Hour')
-    plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-    plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['LE']+')')
-    plt.ylim([-45,45])
-    plt.xlim([-1,24])
-    plt.text(0, 37, 'LE', bbox=bbox)
-    plt.savefig(path_out+'combined_ann_diu_errors/'+"diu_error_LE")
+    def plot_diu_error_cycle(diu_data, flux_name):
+        """Plot the diurnal error cycle of AMF data."""
+        plt.figure()
+        plt.plot([-1,24],[0,0],color='grey',linewidth=.75)
+        for key in diu_error:
+            plt.plot(hour_names,diu_error[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+        plt.xlabel('Local Hour')
+        plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
+        plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['LE']+')')
+        plt.ylim([-100,100])
+        plt.xlim([-0.5, 23.5])
+        plt.text(0.5, 82, flux_name, bbox=bbox)
+        plt.savefig(path_out + 'combined_ann_diu_errors/' + "diu_error_" + flux_name)
+        plt.close()
+    plot_diu_error_cycle(diu_error, 'LE')
+    plot_diu_error_cycle(diu_error, 'H')
 
-    plt.figure()
-    plt.plot([0,25],[0,0],color='grey',linewidth=.75)
-    for key in diu_error:
-        plt.plot(hour_names,diu_error[key]['H'], label=f"{p.sim_name[key]} H", color=p.sim_color[key], linewidth=1.5)
-    plt.xlabel('Local Hour')
-    plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-    plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['H']+')')
-    plt.ylim([-100,100])
-    plt.xlim([-1,24])
-    plt.text(0, 82, 'H', bbox=bbox)
-    plt.savefig(path_out+'combined_ann_diu_errors/'+"diu_error_H")
-
-    plt.figure()
-    plt.plot([0,13],[0,0],color='grey',linewidth=.75)
-    for key in ann_error:
-        plt.plot(np.arange(1,13),ann_error[key]['LE'], label=f"{p.sim_name[key]} LE", color=p.sim_color[key], linewidth=1.5)
-    plt.xlabel('Month')
-    plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['LE']+')')
-    plt.ylim([-64,64])
-    plt.xticks(np.arange(1,13), month_names)
-    plt.xlim([0,13])
-    plt.text(1, 52, 'LE', bbox=bbox)
-    plt.savefig(path_out+'combined_ann_diu_errors/'+"ann_error_LE")
-
-    plt.figure()
-    plt.plot([0,13],[0,0],color='grey',linewidth=.75)
-    for key in ann_error:
-        plt.plot(np.arange(1,13),ann_error[key]['H'], label=f"{p.sim_name[key]} H", color=p.sim_color[key], linewidth=1.5)
-    plt.xlabel('Month')
-    plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['H']+')')
-    plt.ylim([-64,64])
-    plt.xticks(np.arange(1,13), month_names)
-    plt.xlim([0,13])
-    plt.text(1, 52, 'H', bbox=bbox)
-    plt.savefig(path_out+'combined_ann_diu_errors/'+"ann_error_H")
+    def plot_ann_error_cycle(ann_data, flux_name):
+        """Plot the annual error cycle of AMF data."""
+        plt.figure()
+        plt.plot([0,13],[0,0],color='grey',linewidth=.75)
+        for key in ann_data:
+            plt.plot(np.arange(1,13),ann_data[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+        plt.xlabel('Month')
+        plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['LE']+')')
+        plt.xticks(np.arange(1,13), month_names)
+        plt.ylim([-64, 64])
+        plt.xlim([0.5, 12.5])
+        plt.text(1, 52, flux_name, bbox=bbox)
+        plt.savefig(path_out + 'combined_ann_diu_errors/' + "ann_error_" + flux_name)
+        plt.close()
+    plot_ann_error_cycle(ann_error, 'LE')
+    plot_ann_error_cycle(ann_error, 'H')
 
     # Create a legend for combined_ann_diu_errors
     colors = [p.sim_color[key] for key in gem_int_per_station.keys()]
     labels = [p.sim_name[key] for key in gem_int_per_station.keys()]
-    handles = [Line2D([0], [0], color='r', marker='o', linestyle='-', label='H'),
-               Line2D([0], [0], color='b', marker='o', linestyle='-', label='LE')]
-    handles += [Line2D([0], [0], color=color, linewidth=.75, label=label) for color, label in zip(colors, labels)]
-    labels = ['AMF H', 'AMF LE'] + labels
+    handles = [Line2D([0], [0], color='k', linestyle='-', label='FLUXES')]
+    handles += [Line2D([0], [0], color=color, linewidth=1.5, label=label) for color, label in zip(colors, labels)]
+    labels = ['AMF'] + labels
     fig_legend = plt.figure(figsize=(3, 2))
     fig_legend.legend(handles, labels, loc='center', ncol=2)
     fig_legend.savefig(path_out + 'combined_ann_diu_errors/legend_only.png', bbox_inches='tight')
