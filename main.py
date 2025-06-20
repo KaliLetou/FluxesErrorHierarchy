@@ -332,7 +332,7 @@ def main():
                     plt.close()
                     if term == 'tot' :
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
-                        Zmax=.5
+                        Zmax=23
                         levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
                         cmap   = copy.copy(plt.get_cmap('cool'))
                         norm=mcolors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
@@ -539,36 +539,38 @@ def main():
     # -----------------------------------------------
     diu_amf_le = amf_diu_per_station_le['LE']/len(amf_freq_per_station_le)
     diu_amf_hflux = amf_diu_per_station_hflux['H']/len(amf_freq_per_station_hflux)
-    def plot_diu_amf_cycle(diu_data, flux_name, filename):
+    def plot_diu_amf_cycle(diu_data, flux_name, filename, ylim=155):
         """Plot the diurnal cycle of AMF data."""
         plt.figure()
         plt.plot(hour_names,diu_data,linestyle='-',color='k',label='Flux')
         plt.xlabel('Local Hour')
         plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
-        plt.ylabel(flux_name+' ('+varunit_dic[flux_name]+')')
-        plt.ylim(-30, 155)
+        plt.ylabel(flux_name+' ('+varunit_dic['LE']+')')
+        plt.ylim(-30, ylim)
         plt.savefig(path_out+'combined_ann_diu_errors/'+filename)
         plt.close()
     plot_diu_amf_cycle(diu_amf_le, 'LE', 'amf_diu_LE')
     plot_diu_amf_cycle(diu_amf_hflux, 'H', 'amf_diu_H')
+    plot_diu_amf_cycle(diu_amf_hflux+diu_amf_le, 'H+LE', 'amf_diu_H_LE', 300)
 
     # -----------------------------------------------
     # Annual cycle AMF averaged across all stations
     # -----------------------------------------------
     ann_amf_le = amf_ann_per_station_le['LE']/len(amf_freq_per_station_le)
     ann_amf_hflux = amf_ann_per_station_hflux['H']/len(amf_freq_per_station_hflux)
-    def plot_ann_amf_cycle(ann_data, flux_name, filename):
+    def plot_ann_amf_cycle(ann_data, flux_name, filename, ymax=110):
         """Plot the annual cycle of AMF data."""
         plt.figure()
         plt.plot(np.arange(1,13),ann_data,linestyle='-',color='k',label='Flux')
         plt.xlabel('Month')
-        plt.ylabel(flux_name+' ('+varunit_dic[flux_name]+')')
+        plt.ylabel(flux_name+' ('+varunit_dic['LE']+')')
         plt.xticks(np.arange(1,13), month_names)
-        plt.ylim(-5, 110)
+        plt.ylim(-5, ymax)
         plt.savefig(path_out+'combined_ann_diu_errors/'+filename)
         plt.close()
     plot_ann_amf_cycle(ann_amf_le, 'LE', 'amf_ann_LE')
     plot_ann_amf_cycle(ann_amf_hflux, 'H', 'amf_ann_H')
+    plot_ann_amf_cycle(ann_amf_hflux+ann_amf_le, 'H+LE', 'amf_ann_H_LE', 160)
 
     # -----------------------------------------------
     # Combined monthly and hourly latent fluxes from AMF
@@ -817,39 +819,49 @@ def main():
         plt.close()
 
     # Plot diu and ann error cycles
-    def plot_diu_error_cycle(diu_data, flux_name):
+    def plot_diu_error_cycle(flux_name, bby=82, ylim=100):
         """Plot the diurnal error cycle of AMF data."""
         plt.figure()
         plt.plot([-1,24],[0,0],color='grey',linewidth=.75)
-        for key in diu_error:
-            plt.plot(hour_names,diu_error[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+        if flux_name == 'H+LE':
+            for key in diu_error:
+                plt.plot(hour_names,diu_error[key]['H']+diu_error[key]['LE'], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+        else:
+            for key in diu_error:
+                plt.plot(hour_names,diu_error[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
         plt.xlabel('Local Hour')
         plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
         plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['LE']+')')
-        plt.ylim([-100,100])
+        plt.ylim([-ylim, ylim])
         plt.xlim([-0.5, 23.5])
-        plt.text(0.5, 82, flux_name, bbox=bbox)
+        plt.text(0.5, bby, flux_name, bbox=bbox)
         plt.savefig(path_out + 'combined_ann_diu_errors/' + "diu_error_" + flux_name)
         plt.close()
-    plot_diu_error_cycle(diu_error, 'LE')
-    plot_diu_error_cycle(diu_error, 'H')
+    plot_diu_error_cycle('LE')
+    plot_diu_error_cycle('H')
+    plot_diu_error_cycle('H+LE', 70)
 
-    def plot_ann_error_cycle(ann_data, flux_name):
+    def plot_ann_error_cycle(flux_name, bby=52, ylim=64):
         """Plot the annual error cycle of AMF data."""
         plt.figure()
         plt.plot([0,13],[0,0],color='grey',linewidth=.75)
-        for key in ann_data:
-            plt.plot(np.arange(1,13),ann_data[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+        if flux_name == 'H+LE':
+            for key in ann_error:
+                plt.plot(np.arange(1,13),ann_error[key]['H']+ann_error[key]['LE'], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+        else:
+            for key in ann_error:
+                plt.plot(np.arange(1,13),ann_error[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
         plt.xlabel('Month')
         plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['LE']+')')
         plt.xticks(np.arange(1,13), month_names)
-        plt.ylim([-64, 64])
+        plt.ylim([-ylim, ylim])
         plt.xlim([0.5, 12.5])
-        plt.text(1, 52, flux_name, bbox=bbox)
+        plt.text(1, bby, flux_name, bbox=bbox)
         plt.savefig(path_out + 'combined_ann_diu_errors/' + "ann_error_" + flux_name)
         plt.close()
-    plot_ann_error_cycle(ann_error, 'LE')
-    plot_ann_error_cycle(ann_error, 'H')
+    plot_ann_error_cycle('LE')
+    plot_ann_error_cycle('H')
+    plot_ann_error_cycle('H+LE', 18, 25)
 
     # Create a legend for combined_ann_diu_errors
     colors = [p.sim_color[key] for key in gem_int_per_station.keys()]
@@ -984,8 +996,8 @@ def main():
         plt.xticks(np.arange(1,nn+1), error_names[:nn], rotation=45)
         plt.yscale("log")
         plt.ylim([0.2,40])
-        yticks = [0.2, 1, 10]
-        yticklabels = [r'$2 \times 10^{-1}$', r'$10^0$', r'$10^1$']
+        yticks = [1, 10]
+        yticklabels = [r'$10^0$', r'$10^1$']
         plt.yticks(yticks, yticklabels)
         plt.xlim([0,nn+1])
         plt.text(.25, 22, title, bbox=bbox)
