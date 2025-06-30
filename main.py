@@ -4,7 +4,7 @@ import numpy as np
 import os
 import pickle
 import matplotlib.pyplot as plt
-from matplotlib.colors import BoundaryNorm
+from matplotlib.colors import BoundaryNorm, LinearSegmentedColormap
 import matplotlib.colors as mcolors
 from matplotlib.ticker import MaxNLocator
 import glob
@@ -21,7 +21,7 @@ from matplotlib.lines import Line2D
 def main():
     # Setup configuration and simulation parameters
     p = config.params()
-    simulation_names = p.simulations  
+    simulation_names = p.simulations
     variables_dic  = p.variables_dic
     varname_dic   = utils.variables.names
     varunit_dic   = utils.variables.units
@@ -46,7 +46,7 @@ def main():
     os.system('mkdir -p ' + path_out)
     os.system('mkdir -p ' + path_out + 'binning_mean_AMF/')
     os.system('mkdir -p ' + path_out + 'binning_mean_perc_error/')
-    os.system('mkdir -p ' + path_out + 'binning_mean_perc_reg/')
+    os.system('mkdir -p ' + path_out + 'binning_mean_perc_reg-error/')
     os.system('mkdir -p ' + path_out + 'binning_mean_error/')
     os.system('mkdir -p ' + path_out + 'binning_mean_reg-error/')
     os.system('mkdir -p ' + path_out + 'distribution/')
@@ -68,11 +68,8 @@ def main():
     # Set up default plotting parameters
     MPL_DEFAULT_PARAMS = {
         'font.size': 19,
-        # 'figure.figsize': (10, 8),
-        # 'axes.titlesize': 20,
-        # 'axes.labelsize': 18,
-        # 'xtick.labelsize': 16,
-        # 'ytick.labelsize': 16,
+        'legend.fontsize': 30,
+        'lines.markersize': 8,
         'legend.fontsize': 15,
         'lines.linewidth': 2.5,
         'figure.dpi': 300,
@@ -86,7 +83,6 @@ def main():
     sea_months=utils.constants.sea_months
 
     # Get roughness length
-    # Roughness lengths
     dic_z0={}
     for sim in simulations:
         with open(path_z0+sim+'_mean_z0_pickle','rb') as s:
@@ -123,7 +119,6 @@ def main():
                 simulations_tmp=simulations
             for sim in simulations_tmp:
                 for reg in regimes:
-                    #print('Processing simulation: ',source+' - '+sim)
                     data_gem[source+'-'+reg+'-'+sim+'-'+z0]=np.load(path_in+source+'_data_'+sim+'_'+reg+'_z0'+addout+'.npy',allow_pickle=True)
                     m_mean[source+'-'+reg+'-'+sim+'-'+z0]=np.load(path_in+source+'_monthly-mean_'+sim+'_'+reg+'_z0'+addout+'.npy',allow_pickle=True)
                     h_mean[source+'-'+reg+'-'+sim+'-'+z0]=np.load(path_in+source+'_hourly-mean_'+sim+'_'+reg+'_z0'+addout+'.npy',allow_pickle=True)
@@ -134,7 +129,7 @@ def main():
         bins_all={}
         percentiles=np.arange(0,120,20)
         for c_var,var in enumerate(variables):
-            all_dat_t=np.concatenate((data_gem['AMFc-BEL_withz0-all-'+'-'+z0][:,c_var],data_gem['GEM-all-NAM-11m_GEM511_ERA5_CLASS_USGS_Delage_SN8'+'-'+z0][:,c_var])).ravel()
+            all_dat_t=np.concatenate((data_gem['AMFc-BEL_withz0-all-'+'-'+z0][:,c_var],data_gem[f'GEM-all-{simulations[0]}'+'-'+z0][:,c_var])).ravel()
             minv=np.floor(np.min(all_dat_t))
             bins=[]
             bins.append(minv)
@@ -179,36 +174,30 @@ def main():
                 var_errors      = utils.error_decomposition_taylor(var_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
                 var_errors      = utils.error_illdefined(var_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
 
-                var_perc_errors      = np.zeros((len(terms),freq_bin.shape[0],freq_bin.shape[1]))
+                var_perc_errors = np.zeros((len(terms),freq_bin.shape[0],freq_bin.shape[1]))
                 var_perc_errors = utils.percent_error_decomposition_taylor(var_perc_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
-                var_perc_errors      = utils.error_illdefined(var_perc_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
+                var_perc_errors = utils.error_illdefined(var_perc_errors,terms,freq_bin,int_bin,freq_bin_a,int_bin_a)
 
                 factor          = 1
                 var_errors      = var_errors/factor
-                var_perc_errors      = var_perc_errors/factor
+                var_perc_errors = var_perc_errors/factor
 
                 for term in ['int','freq','tot'] :
                     if term=='int':
                         cmap = copy.copy(plt.get_cmap('viridis'))
-                    else:
-                        cmap = copy.copy(plt.get_cmap('cubehelix_r'))
-                    if term=='tot':
-                        cmap = copy.copy(plt.get_cmap('cool'))
-                    cmap.set_bad( "gray", alpha=0 )
-                    if term=='int':
                         Z=int_bin_a.T
                         levels = MaxNLocator(nbins=11).tick_values(-100,250)
                         norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-                    if term=='freq':
+                    elif term=='freq':
+                        cmap = copy.copy(plt.get_cmap('cubehelix_r'))
                         Z=freq_bin_a.T
                         norm=mcolors.LogNorm(vmin=0.0005, vmax=.5, clip=True)
-                    if term=='tot':
+                    elif term=='tot':
+                        cmap = copy.copy(plt.get_cmap('PiYG'))
                         Z=int_bin_a.T*freq_bin_a.T
-                        tt=Z.max()
-                        bb=Z.min()
-                        levels = MaxNLocator(nbins=11).tick_values(bb,tt)
-                        norm=mcolors.SymLogNorm(linthresh=1, linscale=1, base=10, clip=True)
+                        norm=mcolors.SymLogNorm(linthresh=1, linscale=1, vmin=-13, vmax=13, base=10, clip=True)
 
+                    cmap.set_bad( "gray", alpha=0 )
                     plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
                     plt.xlabel('Stability') # variable_plot[1] is stability
                     labelsx = []
@@ -275,28 +264,26 @@ def main():
                         cbar.set_label(rf'$\Delta \overline{{{var_flux}}} \cdot \Delta p$ (' + varunit_dic[variables_plot[0]] + ') (%)')
                     fig_name = path_out + 'binning_mean_perc_error/' + 'binning_mean_perc_error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                     plt.savefig(fig_name, bbox_inches='tight')
-
                     plt.close()
-                    if term == 'tot' :
-                        Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
-                        Zmax=100
-                        levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
-                        cmap   = copy.copy(plt.get_cmap('cool'))
-                        norm=mcolors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
-                        cmap.set_bad( "gray", alpha=0 )
-                        plt.title(sim_name[sim] + ' - ' + var_flux)
-                        plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
-                        plt.xticks(np.arange(len(labelsx))+.5, labelsx)
-                        plt.yticks(np.arange(len(labelsy))+.5, labelsy)
-                        plt.pcolormesh(Z, cmap=cmap, norm=norm)
-                        for m in range(5):
-                            for h in range(5):
-                                plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
-                        cbar = plt.colorbar(extend='max')
-                        cbar.set_label(r'$\epsilon_{reg}$'+ ' (' + varunit_dic[variables_plot[0]] + ')')
-                        fig_name = path_out + 'binning_mean_perc_reg/' + 'binning_mean_perc_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
-                        plt.savefig(fig_name, bbox_inches='tight')
-                        plt.close()
+                    # if term == 'tot' :
+                    #     Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
+                    #     Zmax=100
+                    #     cmap = copy.copy(plt.get_cmap('cool'))
+                    #     norm=mcolors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
+                    #     cmap.set_bad( "gray", alpha=0 )
+                    #     plt.title(sim_name[sim] + ' - ' + var_flux)
+                    #     plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
+                    #     plt.xticks(np.arange(len(labelsx))+.5, labelsx)
+                    #     plt.yticks(np.arange(len(labelsy))+.5, labelsy)
+                    #     plt.pcolormesh(Z, cmap=cmap, norm=norm)
+                    #     for m in range(5):
+                    #         for h in range(5):
+                    #             plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
+                    #     cbar = plt.colorbar(extend='both')
+                    #     cbar.set_label(r'$\epsilon_{reg}$ (%)')
+                    #     fig_name = path_out + 'binning_mean_perc_reg-error/' + 'binning_mean_perc_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
+                    #     plt.savefig(fig_name, bbox_inches='tight')
+                    #     plt.close()
 
 
                 for c_term,term in enumerate(terms):
@@ -333,12 +320,11 @@ def main():
                     if term == 'tot' :
                         Z = np.sum(abs(var_errors[1:,:,:]),axis=0).T
                         Zmax=23
-                        levels = MaxNLocator(nbins=11).tick_values(0, Zmax)
-                        cmap   = copy.copy(plt.get_cmap('cool'))
-                        norm=mcolors.LogNorm(vmin=0.0005, vmax=Zmax, clip=True)
+                        cmap= copy.copy(plt.get_cmap('cool'))
+                        norm=mcolors.LogNorm(vmin=0.1, vmax=Zmax, clip=True)
                         cmap.set_bad( "gray", alpha=0 )
                         plt.title(term_error_names[term] + r' ($\epsilon_{reg}=$' + str(np.round(np.ma.mean(abs(Z)),2)) + ' '+varunit_dic[variables_plot[0]] + ')')
-                        plt.title(sim_name[sim])
+                        plt.title(sim_name[sim] + ' - ' + var_flux)
                         plt.ylabel(varname_dic[variables_plot[2]] + ' (' + varunit_dic[variables_plot[2]] + ')')
                         plt.xticks(np.arange(len(labelsx))+.5, labelsx)
                         plt.yticks(np.arange(len(labelsy))+.5, labelsy)
@@ -346,7 +332,7 @@ def main():
                         for m in range(5):
                             for h in range(5):
                                 plt.text(m+0.5,h+0.5,f'{Z[h, m]:.2f}', ha='center', va='center', color='black',fontsize=11)
-                        cbar = plt.colorbar(extend='max')
+                        cbar = plt.colorbar(extend='min')
                         cbar.set_label(r'$\epsilon_{reg}$'+ ' (' + varunit_dic[variables_plot[0]] + ')')
                         fig_name = path_out+'binning_mean_reg-error/'+'binning_mean_reg-error_' + source + '_' + term + '_' + sim_name[sim] +'_'+add+ '.png'
                         plt.savefig(fig_name, bbox_inches='tight')
@@ -542,9 +528,9 @@ def main():
     def plot_diu_amf_cycle(diu_data, flux_name, filename, ylim=155):
         """Plot the diurnal cycle of AMF data."""
         plt.figure()
-        plt.plot(hour_names,diu_data,linestyle='-',color='k',label='Flux')
+        plt.plot(hour_names,diu_data,linestyle='-',marker='o',color='k',label='Flux')
         plt.xlabel('Local Hour')
-        plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
+        plt.xticks(hour_names[::3], hour_names[::3])
         plt.ylabel(flux_name+' ('+varunit_dic['LE']+')')
         plt.ylim(-30, ylim)
         plt.savefig(path_out+'combined_ann_diu_errors/'+filename)
@@ -561,7 +547,7 @@ def main():
     def plot_ann_amf_cycle(ann_data, flux_name, filename, ymax=110):
         """Plot the annual cycle of AMF data."""
         plt.figure()
-        plt.plot(np.arange(1,13),ann_data,linestyle='-',color='k',label='Flux')
+        plt.plot(np.arange(1,13),ann_data,linestyle='-',marker='o',color='k',label='Flux')
         plt.xlabel('Month')
         plt.ylabel(flux_name+' ('+varunit_dic['LE']+')')
         plt.xticks(np.arange(1,13), month_names)
@@ -581,27 +567,26 @@ def main():
 
     # Create the heatmap
     plt.figure()
-    plt.imshow(int_bin_amf_le, cmap='viridis', aspect='auto')
+    cmap = plt.get_cmap('PuOr')
+    cmap = LinearSegmentedColormap.from_list('PuOr', cmap(np.linspace(0.5, 1, 128))) # Truncate the colormap to only use from white to purple, 128 to use the full range of colors
+    plt.imshow(int_bin_amf_le, cmap=cmap, aspect='auto')
     levels = MaxNLocator(nbins=11).tick_values(0, int_bin_amf_le.max())
-    cmap = plt.get_cmap('viridis')
     norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
     im = plt.imshow(int_bin_amf_le, cmap=cmap, norm=norm_cmap, aspect='auto')
     cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\overline{LE_{h,m}}$'+' ('+varunit_dic['LE']+')')
 
-    # Annotate each cell with the frequency
-    for m in range(12):
-        for h in range(24):
-            value = int_bin_amf_le[h, m]
-            plt.text(m, h, f'{int(freq_bin_amf_le[h, m])}', ha='center', va='center', color="white", fontsize=11)
+    # # Annotate each cell with the frequency
+    # for m in range(12):
+    #     for h in range(24):
+    #         value = int_bin_amf_le[h, m]
+    #         text_color = "white" if value > 150 else "black"
+    #         plt.text(m, h, f'{int(freq_bin_amf_le[h, m])}', ha='center', va='center', color="k", fontsize=11)
 
     # Set labels and title
-    ticks = np.linspace(0, 250, 5)
-    cbar.set_ticks(ticks)
-    cbar.set_ticklabels([f"{int(t)}" for t in ticks])
     plt.xlabel('Month')
     plt.ylabel('Local Hour')
     plt.xticks(np.arange(0,12), month_names)
-    plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
+    plt.yticks(hour_names[::3], hour_names[::3])
     plt.title('AMF')
     plt.savefig(path_out+'error_diu_ann/'+"AMF_LE_ann-diu")
     plt.close()
@@ -615,27 +600,27 @@ def main():
 
     # Create the heatmap
     plt.figure()
-    levels = np.linspace(-int_bin_amf_hflux.max(), int_bin_amf_hflux.max(), 12)
+    LIMIT = 198
+    levels = np.linspace(-LIMIT, LIMIT, 12)
     cmap = plt.get_cmap('PuOr')
     norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
     im = plt.imshow(int_bin_amf_hflux, cmap=cmap, norm=norm_cmap, aspect='auto')
     cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\overline{H_{h,m}}$'+' ('+varunit_dic['H']+')')
 
-    # Annotate each cell with the frequency
-    for m in range(12):
-        for h in range(24):
-            value = int_bin_hflux[h, m]
-            text_color = "black"
-            if value > 60:
-                text_color = "white"
-            plt.text(m, h, f'{int(freq_bin_hflux[h, m])}', ha='center', va='center', color=text_color, fontsize=11)
+    # # Annotate each cell with the frequency
+    # for m in range(12):
+    #     for h in range(24):
+    #         value = int_bin_hflux[h, m]
+    #         text_color = "black"
+    #         if value > 90:
+    #             text_color = "white"
+    #         plt.text(m, h, f'{int(freq_bin_hflux[h, m])}', ha='center', va='center', color=text_color, fontsize=11)
 
     # Set labels and title
-    cbar.set_ticks(np.linspace(-150, 150, 5))
     plt.xlabel('Month')
     plt.ylabel('Local Hour')
     plt.xticks(np.arange(0,12), month_names)
-    plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
+    plt.yticks(hour_names[::3], hour_names[::3])
     plt.title('AMF')
     plt.savefig(path_out+'error_diu_ann/'+"AMF_H_ann-diu")
     plt.close()
@@ -693,18 +678,18 @@ def main():
         errors_all[4,c_key,1]=norm_hflux*np.sum(np.abs(error_hflux)) # 1 is for H
 
         plt.figure()
-        plt.step(bins_le[:-1],histo_amf_le,where='post',label="AMF LE",color='#1f77b4')
-        plt.step(bins_le[:-1],histo_sims[key]['LE'],where='post',label=f"{p.sim_name[key]} LE",color='#ff7f0e')
-        plt.axvline(x=np.mean(amf_le),color='#1f77b4',ls='--')
-        plt.axvline(x=np.mean(sim_le),color='#ff7f0e',ls='--')
-        plt.step(bins_hflux[:-1],histo_amf_hflux,where='post',label="AMF H",color='#2ca02c')
-        plt.step(bins_hflux[:-1],histo_sims[key]['H'],where='post',label=f"{p.sim_name[key]} H",color='#d62728')
-        plt.axvline(x=np.mean(amf_hflux),color='#2ca02c',ls='--')
-        plt.axvline(x=np.mean(sim_hflux),color='#d62728',ls='--')
+        plt.step(bins_le[:-1],histo_amf_le,where='post',label="AMF LE",color='k')
+        plt.step(bins_le[:-1],histo_sims[key]['LE'],where='post',label=f"{p.sim_name[key]} LE",color='b')
+        plt.axvline(x=np.mean(amf_le),color='k',ls='--')
+        plt.axvline(x=np.mean(sim_le),color='b',ls='--')
+        plt.step(bins_hflux[:-1],histo_amf_hflux,where='post',label="AMF H",color='m')
+        plt.step(bins_hflux[:-1],histo_sims[key]['H'],where='post',label=f"{p.sim_name[key]} H",color='c')
+        plt.axvline(x=np.mean(amf_hflux),color='m',ls='--')
+        plt.axvline(x=np.mean(sim_hflux),color='c',ls='--')
         plt.legend(loc='best')
         plt.xscale("log")
         plt.yscale("log")
-        plt.savefig(path_out+"distribution/"+p.sim_name[key]+"_dist") # TODO: Change colours
+        plt.savefig(path_out+"distribution/"+p.sim_name[key]+"_dist")
         plt.close()
 
         bias_error[key] = {}
@@ -721,9 +706,9 @@ def main():
         plt.plot(hours,diu_amf_le,label="AMF LE",color='b')
         plt.plot(hours,gem_diu_le['LE'],label=f"{p.sim_name[key]} LE",color='b',ls='--')
         plt.plot(hours,diu_amf_hflux,label="AMF H",color='r')
-        plt.plot(hours,gem_diu_hflux['H'],label=f"{p.sim_name[key]} H",color='r',ls='--') # TODO: Verify why ['H'] is needed
+        plt.plot(hours,gem_diu_hflux['H'],label=f"{p.sim_name[key]} H",color='r',ls='--')
         plt.xlabel("Local Hour")
-        plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
+        plt.xticks(hour_names[::3], hour_names[::3])
         plt.legend()
         plt.savefig(path_out+"diu_error/"+p.sim_name[key]+"_diu_error")
         plt.close()
@@ -788,18 +773,17 @@ def main():
         ###############################################
         # Create the heatmap for LE
         plt.figure()
-        LIMIT = 170
+        LIMIT = 165
         levels = np.linspace(-LIMIT, LIMIT, 12)
         cmap = copy.copy(plt.get_cmap('seismic'))
         cmap.set_bad("gray", alpha=0)  # Set bad values to gray
         norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
         im = plt.imshow(error_le/freq_bin_amf_le, cmap=cmap, norm=norm_cmap, aspect='auto')
         cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['LE']+')')
-        cbar.set_ticks(np.linspace(-150, 150, 5))
         plt.xlabel('Month')
         plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
-        plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
+        plt.yticks(hour_names[::3], hour_names[::3])
         plt.title(p.sim_name[key] + ' - LE')
         plt.savefig(path_out+"error_diu_ann/"+p.sim_name[key]+"_error_diu-ann_LE")
         plt.close()
@@ -809,68 +793,67 @@ def main():
         norm_cmap = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
         im = plt.imshow(error_hflux/freq_bin_amf_hflux, cmap=cmap, norm=norm_cmap, aspect='auto')
         cbar = plt.colorbar(im, boundaries=levels, ticks=levels, spacing='proportional', label=r'$\epsilon_{ann,diu}$'+' ('+varunit_dic['H']+')')
-        cbar.set_ticks(np.linspace(-150, 150, 5))
         plt.xlabel('Month')
         plt.ylabel('Local Hour')
         plt.xticks(np.arange(0,12), month_names)
-        plt.yticks(hour_names[::3]+2, hour_names[::3]+2)
+        plt.yticks(hour_names[::3], hour_names[::3])
         plt.title(p.sim_name[key] + ' - H')
         plt.savefig(path_out+"error_diu_ann/"+p.sim_name[key]+"_error_diu-ann_H")
         plt.close()
 
     # Plot diu and ann error cycles
-    def plot_diu_error_cycle(flux_name, bby=82, ylim=100):
+    def plot_diu_error_cycle(flux_name):
         """Plot the diurnal error cycle of AMF data."""
         plt.figure()
         plt.plot([-1,24],[0,0],color='grey',linewidth=.75)
         if flux_name == 'H+LE':
             for key in diu_error:
-                plt.plot(hour_names,diu_error[key]['H']+diu_error[key]['LE'], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+                plt.plot(hour_names,diu_error[key]['H']+diu_error[key]['LE'], marker='o', label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], markersize=4, linewidth=1.5)
         else:
             for key in diu_error:
-                plt.plot(hour_names,diu_error[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+                plt.plot(hour_names,diu_error[key][flux_name], marker='o', label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], markersize=4, linewidth=1.5)
         plt.xlabel('Local Hour')
-        plt.xticks(hour_names[::3]+2, hour_names[::3]+2)
+        plt.xticks(hour_names[::3], hour_names[::3])
         plt.ylabel(r"$\epsilon_{diu}$"+' ('+varunit_dic['LE']+')')
-        plt.ylim([-ylim, ylim])
+        plt.ylim([-100, 100])
         plt.xlim([-0.5, 23.5])
-        plt.text(0.5, bby, flux_name, bbox=bbox)
+        plt.text(0.5, 82, flux_name, bbox=bbox)
         plt.savefig(path_out + 'combined_ann_diu_errors/' + "diu_error_" + flux_name)
         plt.close()
     plot_diu_error_cycle('LE')
     plot_diu_error_cycle('H')
-    plot_diu_error_cycle('H+LE', 70)
+    plot_diu_error_cycle('H+LE')
 
-    def plot_ann_error_cycle(flux_name, bby=52, ylim=64):
+    def plot_ann_error_cycle(flux_name):
         """Plot the annual error cycle of AMF data."""
         plt.figure()
         plt.plot([0,13],[0,0],color='grey',linewidth=.75)
         if flux_name == 'H+LE':
             for key in ann_error:
-                plt.plot(np.arange(1,13),ann_error[key]['H']+ann_error[key]['LE'], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+                plt.plot(np.arange(1,13),ann_error[key]['H']+ann_error[key]['LE'], marker='o', label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], markersize=4, linewidth=1.5)
         else:
             for key in ann_error:
-                plt.plot(np.arange(1,13),ann_error[key][flux_name], label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], linewidth=1.5)
+                plt.plot(np.arange(1,13),ann_error[key][flux_name], marker='o', label=f"{p.sim_name[key]} FLUX", color=p.sim_color[key], markersize=4, linewidth=1.5)
         plt.xlabel('Month')
         plt.ylabel(r"$\epsilon_{ann}$"+' ('+varunit_dic['LE']+')')
         plt.xticks(np.arange(1,13), month_names)
-        plt.ylim([-ylim, ylim])
+        plt.ylim([-64, 64])
         plt.xlim([0.5, 12.5])
-        plt.text(1, bby, flux_name, bbox=bbox)
+        plt.text(1, 52, flux_name, bbox=bbox)
         plt.savefig(path_out + 'combined_ann_diu_errors/' + "ann_error_" + flux_name)
         plt.close()
     plot_ann_error_cycle('LE')
     plot_ann_error_cycle('H')
-    plot_ann_error_cycle('H+LE', 18, 25)
+    plot_ann_error_cycle('H+LE')
 
     # Create a legend for combined_ann_diu_errors
     colors = [p.sim_color[key] for key in gem_int_per_station.keys()]
     labels = [p.sim_name[key] for key in gem_int_per_station.keys()]
-    handles = [Line2D([0], [0], color='k', linestyle='-', label='FLUXES')]
-    handles += [Line2D([0], [0], color=color, linewidth=1.5, label=label) for color, label in zip(colors, labels)]
+    handles = [Line2D([0], [0], color='k', marker='o', linestyle='-', markersize=8, label='FLUXES')]
+    handles += [Line2D([0], [0], color=color, marker='o', linestyle='-', markersize=4, linewidth=1.5, label=label) for color, label in zip(colors, labels)]
     labels = ['AMF'] + labels
     fig_legend = plt.figure(figsize=(3, 2))
-    fig_legend.legend(handles, labels, loc='center', ncol=2)
+    fig_legend.legend(handles, labels, loc='center', ncol=2, fontsize=25)
     fig_legend.savefig(path_out + 'combined_ann_diu_errors/legend_only.png', bbox_inches='tight')
     plt.close(fig_legend)
 
@@ -881,8 +864,8 @@ def main():
     plt.xlabel(r'$\overline{LE^{o}_k}$'+' ('+varunit_dic['LE']+')')
     plt.ylabel(r'$N_{k}$')
     plt.yscale("log")
-    # plt.xlim([0,22])
-    plt.ylim()
+    plt.xlim([-20,1100])
+    plt.ylim(0.7,500000)
     plt.savefig(path_out+'distribution_errors/'+"AMF_fi_LE")
     plt.close()
 
@@ -893,7 +876,8 @@ def main():
     plt.xlabel(r'$\overline{H^{o}_k}$'+' ('+varunit_dic['H']+')')
     plt.ylabel(r'$N_{k}$')
     plt.yscale("log")
-    # plt.xlim([0,22])
+    plt.xlim([-20,970])
+    plt.ylim(0.7,500000)
     plt.savefig(path_out+'distribution_errors/'+"AMF_fi_H")
     plt.close()
 
@@ -906,11 +890,9 @@ def main():
         maxA_le=np.max((maxA_le,np.max(np.abs(bins_c_le*(histo_sims[key]['LE']-histo_amf_le)))))
     plt.xlabel(r'$\overline{LE^{o}_k}$'+' ('+varunit_dic['LE']+')')
     plt.ylabel('Absolute error ('+varunit_dic['LE']+')') # r'$(N^{s}_{k}-N^{o}_{k}) \cdot LE^{o}_{k}$'+' ('+varunit_dic['LE']+')'
-    # plt.xlim([0,22])
+    plt.xlim([-20,1100])
     plt.ylim([-4000000,4000000])
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    # plt.text(130, 270000.,"LE", bbox=bbox)
-    # plt.text(.99, .99, 'biased', ha='right', va='bottom', transform=ax.transAxes, bbox=bbox)
     plt.savefig(path_out+'distribution_errors/'+"error_fi_LE")
     plt.close()
     plt.close('all')
@@ -923,11 +905,9 @@ def main():
         maxA_hflux=np.max((maxA_hflux,np.max(np.abs(bins_c_hflux*(histo_sims[key]['H']-histo_amf_hflux)))))
     plt.xlabel(r'$\overline{H^{o}_k}$'+' ('+varunit_dic['H']+')')
     plt.ylabel('Absolute error ('+varunit_dic['H']+')') # r'$(N^{s}_{k}-N^{o}_{k}) \cdot H^{o}_{k}$'+' ('+varunit_dic['H']+')'
-    # plt.xlim([0,22])
+    plt.xlim([-20,970])
     plt.ylim([-4000000,4000000])
     plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    # plt.text(140, 120000.,"H", bbox=bbox)
-    # plt.text(.99, .99, 'biased', ha='right', va='bottom', transform=ax.transAxes, bbox=bbox)
     plt.savefig(path_out+'distribution_errors/'+"error_fi_H")
     plt.close()
     plt.close('all')
@@ -941,6 +921,7 @@ def main():
         plt.step(bins_le[:-1],100.*err_le,where='post',label=p.sim_name[key], color=p.sim_color[key])
     plt.xlabel(r'$\overline{LE^{o}_k}$'+' ('+varunit_dic['LE']+')')
     plt.ylabel('Relative error (%)')
+    plt.xlim([-20,1100])
     plt.ylim([-100,100])
     plt.savefig(path_out+'distribution_errors/'+"error_fi_LE-rel")
     plt.close()
@@ -955,6 +936,7 @@ def main():
         plt.step(bins_hflux[:-1],100.*err_hflux,where='post',label=p.sim_name[key], color=p.sim_color[key])
     plt.xlabel(r'$\overline{H^{o}_k}$'+' ('+varunit_dic['H']+')')
     plt.ylabel('Relative error (%)')
+    plt.xlim([-20,970])
     plt.ylim([-100,100])
     plt.savefig(path_out+'distribution_errors/'+"error_fi_H-rel")
     plt.close()
@@ -966,7 +948,7 @@ def main():
     handles = [Line2D([0], [0], color='k', linestyle='-', label='AMF')] + [Line2D([0], [0], color=color, linestyle='-', label=label) for color, label in zip(colors, labels)]
     labels = ['AMF'] + labels
     fig_legend = plt.figure(figsize=(3, 2))
-    fig_legend.legend(handles, labels, loc='center', ncol=2)
+    fig_legend.legend(handles, labels, loc='center', ncol=2, fontsize=25)
     fig_legend.savefig(path_out + 'distribution_errors/legend_only.png', bbox_inches='tight')
     plt.close(fig_legend)
 
@@ -1023,7 +1005,7 @@ def main():
     labels = [p.sim_name[key] for key in gem_int_per_station.keys()]
     handles = [Line2D([0], [0], color=color, marker='o', linestyle='-', label=label) for color, label in zip(colors, labels)]
     fig_legend = plt.figure(figsize=(3, 2))
-    fig_legend.legend(handles, labels, loc='center', ncol=2)
+    fig_legend.legend(handles, labels, loc='center', ncol=2, fontsize=25)
     fig_legend.savefig(path_out + 'combined_errors/legend_only.png', bbox_inches='tight')
     plt.close(fig_legend)
 
