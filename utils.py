@@ -53,9 +53,9 @@ def calculate_binning_mean(var_comp,bins_all,variables,percentiles,prob=None):
     
     INPUT: 
   	1) var_comp: is an array with two dimensions. The first dimension has a shape 3 corresponding to the number of variables. The second dimension has values of each variables and can contain different times/grid points.
-	2) bins_all: is a dictionary with arrays describing the binning of each variable. It is calculated using the calculate_bins function.
-	3) variables: include the names of the variables to use in the binning process. Variables[0] is the independent variable and the other two are the dependent variables.
-	4) percentiles: for each regime (i,j) we calculate various statistics include the mean, std, max and variaous percentiles.
+    2) bins_all: is a dictionary with arrays describing the binning of each variable. It is calculated using the calculate_bins function.
+    3) variables: include the names of the variables to use in the binning process. Variables[0] is the independent variable and the other two are the dependent variables.
+    4) percentiles: for each regime (i,j) we calculate various statistics include the mean, std, max and variaous percentiles.
 
     OUTPUT:
 	- 2-dimensional array with the number (freq_bin), mean intensity (int_bin),maximum (max_bin), etc. max5_bin,std_bin,per_bin
@@ -160,35 +160,60 @@ def percent_error_decomposition_taylor(var_tot,terms,Im,Nm,Io,No):
 
 #############
 def error_illdefined(var_tot,terms,Im,Nm,Io,No):
-    var_tot=get_mask(var_tot)
-    for bb in [True,False]:
+  """
+    Handles cases where the error decomposition is ill-defined due to mismatched masks
+    (i.e., missing or invalid data) between observed (Io*No) and model (Im*Nm) products.
+
+    For each error term ('tot', 'freq', 'int', 'residual'), this function fills in
+    appropriate values in var_tot where only one of the products is defined:
+      - If only the observation exists, sets error to -obs for 'tot' and 'freq', 0 for others.
+      - If only the model exists, sets error to model for 'tot' and 'freq', 0 for others.
+
+    Parameters
+    ----------
+    var_tot : masked array
+        Array of error terms to be corrected.
+    terms : list of str
+        List of error term names (e.g., ['tot', 'freq', 'int', 'residual']).
+    Im, Nm : masked arrays
+        Model intensity and frequency arrays.
+    Io, No : masked arrays
+        Observed intensity and frequency arrays.
+
+    Returns
+    -------
+    var_tot : masked array
+        Corrected error array with ill-defined cases handled.
+  """
+  var_tot=get_mask(var_tot)
+  for bb in [True,False]:
+    if bb==False:
+      bb1=True
+    else:
+      bb1=False
+    condition=((Io*No).mask==bb) & ((Im*Nm).mask==bb1)
+    #print(bb,np.sum(condition))
+    if np.sum(condition)>0:
       if bb==False:
-        bb1=True
+        for n_stat,stat in enumerate(['tot','freq']):
+          ind=np.where(np.asarray(terms)==stat)[0][0]
+          var_tot[ind,:][condition]=-(Io*No)[condition].data
+          var_tot.mask[ind,:][condition]=False
+        for n_stat,stat in enumerate(['int','residual']):
+          ind=np.where(np.asarray(terms)==stat)[0][0]
+          var_tot[ind,:][condition]=-(Io*No)[condition].data*0
+          var_tot[ind,:][condition].mask=False
       else:
-        bb1=False
-      condition=((Io*No).mask==bb) & ((Im*Nm).mask==bb1)
-      #print(bb,np.sum(condition))
-      if np.sum(condition)>0:
-        if bb==False:
-          for n_stat,stat in enumerate(['tot','freq']):
-            ind=np.where(np.asarray(terms)==stat)[0][0]
-            var_tot[ind,:][condition]=-(Io*No)[condition].data
-            var_tot.mask[ind,:][condition]=False
-          for n_stat,stat in enumerate(['int','residual']):
-            ind=np.where(np.asarray(terms)==stat)[0][0]
-            var_tot[ind,:][condition]=-(Io*No)[condition].data*0
-            var_tot[ind,:][condition].mask=False
-        else:
-          for stat in ['tot','freq']:
-            ind=np.where(np.asarray(terms)==stat)[0][0]
-            #pdb.set_trace()
-            var_tot[ind,:][condition]=(Im*Nm)[condition].data
-            var_tot[ind,:][condition].mask=False
-          for stat in ['int','residual']:
-            ind=np.where(np.asarray(terms)==stat)[0][0]
-            var_tot[ind,:][condition]=(Im*Nm)[condition].data*0
-            var_tot[ind,:][condition].mask=False
-    return var_tot
+        for stat in ['tot','freq']:
+          ind=np.where(np.asarray(terms)==stat)[0][0]
+          #pdb.set_trace()
+          var_tot[ind,:][condition]=(Im*Nm)[condition].data
+          var_tot[ind,:][condition].mask=False
+        for stat in ['int','residual']:
+          ind=np.where(np.asarray(terms)==stat)[0][0]
+          var_tot[ind,:][condition]=(Im*Nm)[condition].data*0
+          var_tot[ind,:][condition].mask=False
+  return var_tot
 
 # Modified binnin function
 def calculate_binning_mean_time(var_comp, bins_all, variables, percentiles, prob=None):
